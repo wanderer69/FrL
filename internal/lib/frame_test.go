@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	print "github.com/wanderer69/FrL/internal/lib/print"
+	print "github.com/wanderer69/tools/parser/print"
 )
 
 func TestFrame(t *testing.T) {

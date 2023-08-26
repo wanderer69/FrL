@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"unsafe"
 
-	attr "github.com/wanderer69/FrL/internal/lib/attributes"
 	ops "github.com/wanderer69/FrL/internal/lib/operators"
+	attr "github.com/wanderer69/tools/parser/attributes"
 )
 
 type Function struct {

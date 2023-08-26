@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	print "github.com/wanderer69/FrL/internal/lib/print"
+	print "github.com/wanderer69/tools/parser/print"
 )
 
 // тип слот

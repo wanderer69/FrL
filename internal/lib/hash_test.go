@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	uqe "github.com/wanderer69/FrL/internal/unique"
+	uqe "github.com/wanderer69/tools/unique"
 )
 
 func TestHash(t *testing.T) {

@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"strings"
 
-	attr "github.com/wanderer69/FrL/internal/lib/attributes"
 	fnc "github.com/wanderer69/FrL/internal/lib/functions"
-	ns "github.com/wanderer69/FrL/internal/lib/new_strings"
 	ops "github.com/wanderer69/FrL/internal/lib/operators"
-	uqe "github.com/wanderer69/FrL/internal/unique"
+	attr "github.com/wanderer69/tools/parser/attributes"
+	ns "github.com/wanderer69/tools/parser/new_strings"
+	uqe "github.com/wanderer69/tools/unique"
 
-	parser "github.com/wanderer69/FrL/internal/lib/parser"
+	parser "github.com/wanderer69/tools/parser/parser"
 )
 
 // грамматика !!!

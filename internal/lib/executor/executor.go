@@ -5,7 +5,7 @@ import (
 	"os"
 
 	frl "github.com/wanderer69/FrL/internal/lib"
-	print "github.com/wanderer69/FrL/internal/lib/print"
+	print "github.com/wanderer69/tools/parser/print"
 )
 
 type ExecutorBase struct {

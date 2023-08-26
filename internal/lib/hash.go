@@ -3,7 +3,7 @@ package frl
 import (
 	"fmt"
 
-	print "github.com/wanderer69/FrL/internal/lib/print"
+	print "github.com/wanderer69/tools/parser/print"
 )
 
 type HTNode struct {

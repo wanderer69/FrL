@@ -5,7 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	attr "github.com/wanderer69/FrL/internal/lib/attributes"
+	attr "github.com/wanderer69/tools/parser/attributes"
 )
 
 type Operator struct {

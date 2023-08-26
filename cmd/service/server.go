@@ -10,8 +10,8 @@ import (
 	"github.com/gorilla/websocket"
 
 	exec "github.com/wanderer69/FrL/internal/lib/executor"
-	print "github.com/wanderer69/FrL/internal/lib/print"
 	"github.com/wanderer69/debug"
+	print "github.com/wanderer69/tools/parser/print"
 )
 
 type wsEnv struct {

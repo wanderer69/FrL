@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"os"
 
-	print "github.com/wanderer69/FrL/internal/lib/print"
 	smalldb "github.com/wanderer69/SmallDB/v3"
+	print "github.com/wanderer69/tools/parser/print"
 )
 
 type Store struct {

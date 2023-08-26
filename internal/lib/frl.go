@@ -8,7 +8,7 @@ import (
 	"unicode/utf8"
 
 	fnc "github.com/wanderer69/FrL/internal/lib/functions"
-	uqe "github.com/wanderer69/FrL/internal/unique"
+	uqe "github.com/wanderer69/tools/unique"
 )
 
 func IsFrame(value interface{}) bool {

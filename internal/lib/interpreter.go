@@ -4,15 +4,15 @@ import (
 	"fmt"
 	"strconv"
 
-	attr "github.com/wanderer69/FrL/internal/lib/attributes"
 	"github.com/wanderer69/FrL/internal/lib/script"
-	"github.com/wanderer69/FrL/internal/unique"
+	attr "github.com/wanderer69/tools/parser/attributes"
+	"github.com/wanderer69/tools/unique"
 
 	fnc "github.com/wanderer69/FrL/internal/lib/functions"
-	ns "github.com/wanderer69/FrL/internal/lib/new_strings"
 	ops "github.com/wanderer69/FrL/internal/lib/operators"
-	"github.com/wanderer69/FrL/internal/lib/parser"
-	print "github.com/wanderer69/FrL/internal/lib/print"
+	ns "github.com/wanderer69/tools/parser/new_strings"
+	"github.com/wanderer69/tools/parser/parser"
+	print "github.com/wanderer69/tools/parser/print"
 )
 
 type BreakPoint struct {
