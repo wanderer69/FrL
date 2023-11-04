@@ -4,10 +4,10 @@ import (
 	"flag"
 	"fmt"
 
-	"io/ioutil"
+	"os"
 
-	frl "github.com/wanderer69/FrL/internal/lib"
-	fnc "github.com/wanderer69/FrL/internal/lib/functions"
+	fnc "github.com/wanderer69/FrL/public/functions"
+	frl "github.com/wanderer69/FrL/public/lib"
 	print "github.com/wanderer69/tools/parser/print"
 )
 
@@ -124,7 +124,7 @@ func main() {
 	}
 
 	if false {
-		bb, err := ioutil.ReadFile(file_in)
+		bb, err := os.ReadFile(file_in)
 		if err != nil {
 			fmt.Print(err)
 			return
@@ -146,7 +146,7 @@ func main() {
 			}
 		}
 
-		data, err := ioutil.ReadFile(file_in)
+		data, err := os.ReadFile(file_in)
 		if err != nil {
 			fmt.Print(err)
 			return

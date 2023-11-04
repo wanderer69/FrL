@@ -12,7 +12,7 @@ import (
 	"github.com/wanderer69/debug"
 
 	uuid "github.com/satori/go.uuid"
-	fnc "github.com/wanderer69/FrL/internal/lib/functions"
+	fnc "github.com/wanderer69/FrL/public/functions"
 	print "github.com/wanderer69/tools/parser/print"
 )
 

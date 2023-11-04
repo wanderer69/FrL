@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	frl "github.com/wanderer69/FrL/internal/lib"
+	frl "github.com/wanderer69/FrL/public/lib"
 	print "github.com/wanderer69/tools/parser/print"
 )
 
@@ -177,9 +177,11 @@ func (e *Executor) ExecuteFuncWithManyFiles(
 		bp := e.eb.ie.GetCurrentBreakPoint()
 		if bp != nil {
 			cf := ce.GetCurrentFunc()
+			fn := cf.GetFunc()
+			fnName := fn.Name
 			data := [][]string{}
 			for k, v := range cf.GetVarDict() {
-				data = append(data, []string{cf.GetFunc().Name, k, fmt.Sprintf("%v", v.GetType()), v.String()})
+				data = append(data, []string{fnName, k, fmt.Sprintf("%v", v.GetType()), v.String()})
 			}
 
 			if callback != nil {

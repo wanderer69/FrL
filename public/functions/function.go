@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"unsafe"
 
-	ops "github.com/wanderer69/FrL/internal/lib/operators"
+	ops "github.com/wanderer69/FrL/public/operators"
 	attr "github.com/wanderer69/tools/parser/attributes"
 )
 

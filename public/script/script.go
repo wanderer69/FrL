@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	fnc "github.com/wanderer69/FrL/internal/lib/functions"
-	ops "github.com/wanderer69/FrL/internal/lib/operators"
+	fnc "github.com/wanderer69/FrL/public/functions"
+	ops "github.com/wanderer69/FrL/public/operators"
 	attr "github.com/wanderer69/tools/parser/attributes"
 	ns "github.com/wanderer69/tools/parser/new_strings"
 	uqe "github.com/wanderer69/tools/unique"

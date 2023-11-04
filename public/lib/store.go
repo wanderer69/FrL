@@ -4,9 +4,8 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
-	"os"
 
-	smalldb "github.com/wanderer69/SmallDB/v3"
+	smalldb "github.com/wanderer69/SmallDB/public/index"
 	print "github.com/wanderer69/tools/parser/print"
 )
 
@@ -16,23 +15,23 @@ type Store struct {
 }
 
 func NewStore(path string, o *print.Output) (*Store, error) {
-	psdb := smalldb.Init_SmallDB(path)
-	sdb := &psdb
+	sdb := smalldb.InitSmallDB(path)
+	//sdb := &psdb
 	sdb.Debug = 0
 	if !sdb.Inited {
 		fl := []string{"frame_id", "slot_name", "slot_property", "slot_value", "frame_id_slot_name", "slot_name_slot_value"}
-		res := sdb.CreateDB(fl, path)
-		if res != 0 {
-			o.Print("Error creating DB %v\r\n", res)
-			os.Exit(res)
+		err := sdb.CreateDB(fl, path)
+		if err != nil {
+			o.Print("Error creating DB %v\r\n", err)
+			return nil, err
 		}
 		sdb.CreateIndex([]string{"frame_id"})
 		sdb.CreateIndex([]string{"slot_name"})
 		sdb.CreateIndex([]string{"frame_id_slot_name"})
 		sdb.CreateIndex([]string{"slot_name_slot_value"})
 		o.Print("CreateDB end\r\n")
-		psdb = smalldb.Init_SmallDB(path)
-		sdb = &psdb
+		sdb = smalldb.InitSmallDB(path)
+		//sdb = &psdb
 	}
 	sdb.OpenDB()
 	oc := &Store{}
@@ -66,12 +65,12 @@ func (oc *Store) SaveFrameRecord(frame_id *Value, slot_name string, slot_propert
 	h2.Write([]byte(slot_name_s))
 	slot_name_slot_value_hash := hex.EncodeToString(h1.Sum([]byte(slot_value_s)))
 
-	oc.Sdb.Store_record(frame_id_s, slot_name_s, slot_property_s, slot_value_s, frame_id_slot_name_hash, slot_name_slot_value_hash)
-	return nil
+	_, _, err := oc.Sdb.StoreRecord(frame_id_s, slot_name_s, slot_property_s, slot_value_s, frame_id_slot_name_hash, slot_name_slot_value_hash)
+	return err
 }
 
 func (oc *Store) LoadFrameRecord(debug int) (func() (frame_id string, slot_name string, slot_property string, slot_value *Value, err error), error) {
-	lazy, err := oc.Sdb.Load_lazy_records(0)
+	lazy, err := oc.Sdb.LoadLazyRecords(0)
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +103,7 @@ func (oc *Store) Find(qri *QueryRelationItem, debug int, output *print.Output) (
 	case "relation":
 
 	}
-	ds, err, err1 := oc.Sdb.Find_record_index_string([]string{name}, []string{val})
+	ds, err, err1 := oc.Sdb.FindRecordIndexString([]string{name}, []string{val})
 	if err1 != nil {
 		output.Print("Error %v %v\r\n", err, err1)
 		return nil, err1

@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/wanderer69/FrL/internal/lib/script"
+	"github.com/wanderer69/FrL/public/script"
 	attr "github.com/wanderer69/tools/parser/attributes"
 	"github.com/wanderer69/tools/unique"
 
-	fnc "github.com/wanderer69/FrL/internal/lib/functions"
-	ops "github.com/wanderer69/FrL/internal/lib/operators"
+	fnc "github.com/wanderer69/FrL/public/functions"
+	ops "github.com/wanderer69/FrL/public/operators"
 	ns "github.com/wanderer69/tools/parser/new_strings"
 	"github.com/wanderer69/tools/parser/parser"
 	print "github.com/wanderer69/tools/parser/print"
