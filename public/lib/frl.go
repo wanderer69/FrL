@@ -29,7 +29,7 @@ func IsFrame(value interface{}) bool {
 
 // тип итератор. замыкает значение списка либо фрейма и дальше позволяет вызовом функции next получать очередное значение
 type Iterator struct {
-	typev        int
+	typev        ValueType
 	value        *Value
 	pos          int
 	flag         bool
@@ -96,6 +96,9 @@ func (iter *Iterator) CreateIterate() func() (*Value, error) {
 }
 
 func (iter *Iterator) Iterate() (*Value, error) {
+	if iter.flag {
+		return nil, errors.New("iterate end")
+	}
 	return iter.func_iterate()
 }
 
@@ -152,8 +155,8 @@ func (v *Value) IsEnd() (vr *Value, err error) {
 	return
 }
 
-func ToType(value interface{}) (int, bool) {
-	typev := -1
+func ToType(value interface{}) (ValueType, bool) {
+	typev := ValueType(-1)
 	res := false
 	// проверяем тип
 	if value == nil {
@@ -194,6 +197,9 @@ func ToType(value interface{}) (int, bool) {
 						res = true
 					} else if sl[1] == "Function" {
 						typev = VtFunction
+						res = true
+					} else if sl[1] == "Value" {
+						typev = VtIterator
 						res = true
 					}
 				}

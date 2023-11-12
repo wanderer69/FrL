@@ -16,24 +16,59 @@ import (
 	print "github.com/wanderer69/tools/parser/print"
 )
 
+type ValueType int
+
 const (
-	VtNil      = 0
-	VtBool     = 1
-	VtInt      = 2
-	VtFloat    = 3
-	VtString   = 4
-	VtFrame    = 5
-	VtSlice    = 6
-	VtIterator = 7
-	VtSlot     = 8
-	VtStream   = 9
-	VtFunction = 10
+	VtNil      ValueType = 0
+	VtBool     ValueType = 1
+	VtInt      ValueType = 2
+	VtFloat    ValueType = 3
+	VtString   ValueType = 4
+	VtFrame    ValueType = 5
+	VtSlice    ValueType = 6
+	VtIterator ValueType = 7
+	VtSlot     ValueType = 8
+	VtStream   ValueType = 9
+	VtFunction ValueType = 10
 )
+
+func (vt ValueType) String() string {
+	result := ""
+	switch vt {
+	case VtNil:
+		result = "nil"
+	case VtBool:
+		result = "bool"
+	case VtInt:
+		result = "int"
+	case VtFloat:
+		result = "float"
+	case VtString:
+		result = "string"
+	case VtFrame:
+		result = "frame"
+	case VtSlice:
+		result = "slice"
+	case VtIterator:
+		result = "iterator"
+	case VtSlot:
+		result = "slot"
+	case VtStream:
+		result = "stream"
+	case VtFunction:
+		result = "function"
+	}
+	return result
+}
+
+func (vt ValueType) Int() int {
+	return int(vt)
+}
 
 // значение слота и базовый тип интерпретатора
 // значение слота
 type Value struct {
-	typev int
+	typev ValueType
 	value interface{}
 }
 
@@ -41,16 +76,16 @@ func (v *Value) Value(value interface{}) {
 	v.value = value
 }
 
-func (v *Value) Typev(t int) {
+func (v *Value) Typev(t ValueType) {
 	v.typev = t
 }
 
-func (value *Value) GetType() int {
+func (value *Value) GetType() ValueType {
 	return value.typev
 }
 
 func NewValue(vtype int, value interface{}) *Value {
-	return &Value{vtype, value}
+	return &Value{ValueType(vtype), value}
 }
 
 func CreateValue(value interface{}) *Value {
@@ -58,15 +93,15 @@ func CreateValue(value interface{}) *Value {
 	pv.value = value
 	tt, ok := ToType(value)
 	if ok {
-		pv.typev = tt
+		pv.typev = ValueType(tt)
 	}
 	return pv
 }
 
 func RestoreValue(vtype int, value string) *Value {
 	result := &Value{}
-	result.typev = vtype
-	switch vtype {
+	result.typev = ValueType(vtype)
+	switch result.typev {
 	case VtBool:
 		i, _ := strconv.ParseInt(value, 10, 64)
 		if value == "true" {
@@ -945,7 +980,7 @@ func LoadValueStore(bb []byte) (*Value, []byte, error) {
 		fmt.Println(err)
 		return nil, []byte{}, err
 	}
-	v.typev = int(value_store_header.Type)
+	v.typev = ValueType(value_store_header.Type)
 
 	switch v.typev {
 	case VtBool:

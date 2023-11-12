@@ -118,11 +118,6 @@ func main() {
 
 	ie.SetFrameEnvironment(fe)
 
-	if len(file_in) == 0 {
-		flag.PrintDefaults()
-		return
-	}
-
 	if false {
 		bb, err := os.ReadFile(file_in)
 		if err != nil {

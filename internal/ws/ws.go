@@ -156,7 +156,7 @@ func (wsEnv *WSEnv) Listen(eb *exec.ExecutorBase, e *exec.Executor) {
 					SourceCode:  mi.Sources[i].Source,
 					Breakpoints: breakpoints})
 			}
-			callback := func(name string, number int, data [][]string) {
+			callback := func(name string, number int, data [][]string, variables []*exec.Variable) {
 				for {
 					var moCB MessageOut
 					moCB.Id = mi.Id

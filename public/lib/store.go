@@ -39,83 +39,111 @@ func NewStore(path string, o *print.Output) (*Store, error) {
 	return oc, nil
 }
 
-func (oc *Store) SaveFrameRecord(frame_id *Value, slot_name string, slot_property string, slot_value *Value, debug int) error {
-	if frame_id.typev != VtString {
+func (oc *Store) SaveFrameRecord(frameId *Value, slotName string, slotProperty string, slotValue *Value, debug int) error {
+	if frameId.typev != VtString {
 		return fmt.Errorf("frame id must be string")
 	}
-	frame_id_s := frame_id.String()
-	slot_name_s := slot_name
-	slot_property_s := slot_property
-	slot_value_s := ""
-	if slot_value.typev == VtNil {
+	frameIdS := frameId.String()
+	//slotNameS := slotName
+	//slotPropertyS := slotProperty
+	slotValueS := ""
+	if slotValue.typev == VtNil {
 
 	} else {
-		d, err := SaveValueStore(slot_value)
+		d, err := SaveValueStore(slotValue)
 		if err != nil {
 			return err
 		}
-		slot_value_s = string(d)
+		slotValueS = string(d)
 	}
 
 	h1 := sha1.New()
-	h1.Write([]byte(frame_id_s))
-	frame_id_slot_name_hash := hex.EncodeToString(h1.Sum([]byte(slot_name_s)))
+	h1.Write([]byte(frameIdS))
+	frameIdSlotNameHash := hex.EncodeToString(h1.Sum([]byte(slotName)))
 
 	h2 := sha1.New()
-	h2.Write([]byte(slot_name_s))
-	slot_name_slot_value_hash := hex.EncodeToString(h1.Sum([]byte(slot_value_s)))
+	h2.Write([]byte(slotName))
+	slotNameSlotValueHash := hex.EncodeToString(h2.Sum([]byte(slotValueS)))
 
-	_, _, err := oc.Sdb.StoreRecord(frame_id_s, slot_name_s, slot_property_s, slot_value_s, frame_id_slot_name_hash, slot_name_slot_value_hash)
+	_, _, err := oc.Sdb.StoreRecord(frameIdS, slotName, slotProperty, slotValueS, frameIdSlotNameHash, slotNameSlotValueHash)
 	return err
 }
 
-func (oc *Store) LoadFrameRecord(debug int) (func() (frame_id string, slot_name string, slot_property string, slot_value *Value, err error), error) {
+func (oc *Store) LoadFrameRecord(debug int) (func() (frameId string, slotName string, slotProperty string, slotValue *Value, err error), error) {
 	lazy, err := oc.Sdb.LoadLazyRecords(0)
 	if err != nil {
 		return nil, err
 	}
-	loader := func() (frame_id string, slot_name string, slot_property string, slot_value *Value, err error) {
+	loader := func() (frameId string, slotName string, slotProperty string, slotValue *Value, err error) {
 		rec, _, err := lazy()
 		if err != nil {
 			return "", "", "", nil, err
 		}
-		frame_id = rec.FieldsValue[0]
-		slot_name = rec.FieldsValue[1]
-		slot_property = rec.FieldsValue[2]
-		value_s := rec.FieldsValue[3]
-		d, _, err := LoadValueStore([]byte(value_s))
+		frameId = rec.FieldsValue[0]
+		slotName = rec.FieldsValue[1]
+		slotProperty = rec.FieldsValue[2]
+		valueS := rec.FieldsValue[3]
+		d, _, err := LoadValueStore([]byte(valueS))
 		if err != nil {
 			return "", "", "", nil, err
 		}
-		slot_value = d
+		slotValue = d
 
 		return
 	}
 	return loader, nil
 }
 
-func (oc *Store) Find(qri *QueryRelationItem, debug int, output *print.Output) (func() (frame_id *Value, name *Value, property *Value, value *Value, err error), error) {
+func (oc *Store) Find(qri *QueryRelationItem) (func() (frameId *Value, name *Value, property *Value, value *Value, err error), error) {
 	name := ""
 	val := ""
+
+	slotValue := ""
+	if qri.Value.typev == VtNil {
+
+	} else {
+		d, err := SaveValueStore(qri.Value)
+		if err != nil {
+			return nil, err
+		}
+		slotValue = string(d)
+	}
+
 	switch qri.ObjectType {
 	case "frame":
-
+		name = "frame_id"
+		/*
+			h1 := sha1.New()
+			h1.Write([]byte(slotValue))
+			hex.EncodeToString(h1.Sum([]byte(slot_name_s)))
+		*/
+		val = slotValue
 	case "relation":
-
+		if len(slotValue) > 0 {
+			name = "slot_name_slot_value"
+			h2 := sha1.New()
+			h2.Write([]byte(qri.Object))
+			val = hex.EncodeToString(h2.Sum([]byte(slotValue)))
+		} else {
+			name = "slot_name"
+			val = qri.Object
+		}
 	}
 	ds, err, err1 := oc.Sdb.FindRecordIndexString([]string{name}, []string{val})
 	if err1 != nil {
-		output.Print("Error %v %v\r\n", err, err1)
-		return nil, err1
+		fmt.Printf("Error %v %v\r\n", err, err1)
+		return nil, fmt.Errorf("FindRecordIndexString error %v: %w", err, err1)
 	}
-	output.Print("-> err %v\r\n", err)
-	for k := range ds {
-		output.Print("ds[%v] %v\r\n", k, ds[k])
-	}
+	//Print("-> err %v\r\n", err)
+	/*
+		for k := range ds {
+			fmt.Printf("ds[%v] %#v\r\n", k, ds[k])
+		}
+	*/
 	pos := 0
 	finder := func() (frame_id *Value, name *Value, property *Value, value *Value, err error) {
 		//
-		if len(ds) > pos {
+		if len(ds) <= pos {
 			return nil, nil, nil, nil, fmt.Errorf("empty")
 		}
 
@@ -128,7 +156,7 @@ func (oc *Store) Find(qri *QueryRelationItem, debug int, output *print.Output) (
 		frame_id = CreateValue(frame_id_s)
 		name = CreateValue(name_s)
 		property = CreateValue(property_s)
-		value = CreateValue(value_s)
+		//value = CreateValue(value_s)
 		d, _, err := LoadValueStore([]byte(value_s))
 		if err != nil {
 			return nil, nil, nil, nil, err

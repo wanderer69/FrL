@@ -495,9 +495,9 @@ func (ie *InterpreterEnv) InterpreterFuncStep( /* cf *ContextFunc */ ) (bool, er
 					ie.Output.Print("array %v\r\n", array)
 				}
 				res := parseArg(array)
-				slot_name := ""
-				var_name := ""
-				var_name2 := ""
+				slotName := ""
+				varName := ""
+				varName2 := ""
 				value := ""
 				if res != nil {
 					state := 0
@@ -533,24 +533,24 @@ func (ie *InterpreterEnv) InterpreterFuncStep( /* cf *ContextFunc */ ) (bool, er
 							}
 						} else if res[i].Type == "var" {
 							if state == 4 {
-								var_name = res[i].Value
+								varName = res[i].Value
 								state = 5
 							} else if state == 11 {
-								var_name = res[i].Value
+								varName = res[i].Value
 								state = 12
 							} else if state == 14 {
-								var_name2 = res[i].Value
+								varName2 = res[i].Value
 								state = 15
 							}
 						} else if res[i].Type == "value" {
 							if state == 2 {
-								slot_name = res[i].Value
+								slotName = res[i].Value
 								state = 3
 							} else if state == 5 {
 								value = res[i].Value
 								state = 7
 							} else if state == 8 {
-								var_name = res[i].Value
+								varName = res[i].Value
 								state = 9
 							} else if state == 0 {
 								value = res[i].Value
@@ -562,23 +562,23 @@ func (ie *InterpreterEnv) InterpreterFuncStep( /* cf *ContextFunc */ ) (bool, er
 						}
 					}
 					if debug > 6 {
-						ie.Output.Print("slot_name %v var_name %v value %v\r\n", slot_name, var_name, value)
+						ie.Output.Print("slot_name %v var_name %v value %v\r\n", slotName, varName, value)
 					}
 					switch state {
 					case 3:
 						if debug > 4 {
-							ie.Output.Print("slot: slot_name %v\r\n", slot_name)
+							ie.Output.Print("slot: slot_name %v\r\n", slotName)
 						}
 						var err error
-						qria, err = addQriaPointWoValue(slot_name, qria)
+						qria, err = addQriaPointWoValue(slotName, qria)
 						if err != nil {
 							return nil, false, err
 						}
 					case 7:
 						if debug > 4 {
-							ie.Output.Print("slot_name %v value %v\r\n", slot_name, value)
+							ie.Output.Print("slot_name %v value %v\r\n", slotName, value)
 						}
-						sl := ns.ParseStringBySignList(slot_name, []string{"."})
+						sl := ns.ParseStringBySignList(slotName, []string{"."})
 						if len(sl) > 0 {
 							// ошибка!
 							return nil, false, fmt.Errorf("too more points in %v", name)
@@ -588,14 +588,14 @@ func (ie *InterpreterEnv) InterpreterFuncStep( /* cf *ContextFunc */ ) (bool, er
 							// ошибка!
 							return nil, false, fmt.Errorf("too more points in %v", name)
 						}
-						qri := QueryRelationItem{ObjectType: "relation", Object: slot_name}
+						qri := QueryRelationItem{ObjectType: "relation", Object: slotName}
 						qri.Value = CreateValue(value)
 						qria = append(qria, qri)
 					case 9:
 						if debug > 4 {
-							ie.Output.Print("slot_name %v var_name %v\r\n", slot_name, var_name)
+							ie.Output.Print("slot_name %v var_name %v\r\n", slotName, varName)
 						}
-						sl := ns.ParseStringBySignList(slot_name, []string{"."})
+						sl := ns.ParseStringBySignList(slotName, []string{"."})
 						if len(sl) > 0 {
 							// ошибка!
 							return nil, false, fmt.Errorf("too more points in %v", name)
@@ -605,11 +605,11 @@ func (ie *InterpreterEnv) InterpreterFuncStep( /* cf *ContextFunc */ ) (bool, er
 							// ошибка!
 							return nil, false, fmt.Errorf("too more points in %v", name)
 						}
-						v, ok := cf.varDict[var_name]
+						v, ok := cf.varDict[varName]
 						if !ok {
-							return nil, false, fmt.Errorf("variable %v not found", var_name)
+							return nil, false, fmt.Errorf("variable %v not found", varName)
 						}
-						qri := QueryRelationItem{ObjectType: "relation", Object: slot_name}
+						qri := QueryRelationItem{ObjectType: "relation", Object: slotName}
 						qri.Value = v
 						qria = append(qria, qri)
 					case 10:
@@ -623,17 +623,17 @@ func (ie *InterpreterEnv) InterpreterFuncStep( /* cf *ContextFunc */ ) (bool, er
 						}
 					case 12:
 						if debug > 4 {
-							ie.Output.Print("slot: var_name %v\r\n", var_name)
+							ie.Output.Print("slot: var_name %v\r\n", varName)
 						}
-						sl := ns.ParseStringBySignList(var_name, []string{"."})
+						sl := ns.ParseStringBySignList(varName, []string{"."})
 						if len(sl) > 3 {
 							// ошибка!
 							return nil, false, fmt.Errorf("too more points in %v", name)
 						}
-						var_name_ := sl[0]
-						v, ok := cf.varDict[var_name_]
+						varNameLocal := sl[0]
+						v, ok := cf.varDict[varNameLocal]
 						if !ok {
-							return nil, false, fmt.Errorf("variable %v not found", var_name_)
+							return nil, false, fmt.Errorf("variable %v not found", varNameLocal)
 						}
 						vt := v.GetType()
 						vv, ok := FromType(v)
@@ -641,12 +641,12 @@ func (ie *InterpreterEnv) InterpreterFuncStep( /* cf *ContextFunc */ ) (bool, er
 							ie.Output.Print("vt %v, FromType(v) %v ok %v\r\n", vt, vv, ok)
 						}
 						if vt == VtString {
-							var_name, _ = FromType(v)
+							varName, _ = FromType(v)
 						} else {
-							return nil, false, fmt.Errorf("slot name in variable %v must be string. Now %v", var_name_, vt)
+							return nil, false, fmt.Errorf("slot name in variable %v must be string. Now %v", varNameLocal, vt)
 						}
 
-						qri := QueryRelationItem{ObjectType: "relation", Object: var_name}
+						qri := QueryRelationItem{ObjectType: "relation", Object: varName}
 						if len(sl) == 3 {
 							qri.Value = CreateValue(sl[2])
 						}
@@ -662,17 +662,17 @@ func (ie *InterpreterEnv) InterpreterFuncStep( /* cf *ContextFunc */ ) (bool, er
 						}
 					case 15:
 						if debug > 4 {
-							ie.Output.Print("slot: var_name %v var_name2 %v\r\n", var_name, var_name2)
+							ie.Output.Print("slot: var_name %v var_name2 %v\r\n", varName, varName2)
 						}
-						sl := ns.ParseStringBySignList(var_name, []string{"."})
+						sl := ns.ParseStringBySignList(varName, []string{"."})
 						if len(sl) > 2 {
 							// ошибка!
 							return nil, false, fmt.Errorf("too more points in %v", name)
 						}
-						var_name_ := sl[0]
-						v, ok := cf.varDict[var_name_]
+						varNameLocal := sl[0]
+						v, ok := cf.varDict[varNameLocal]
 						if !ok {
-							return nil, false, fmt.Errorf("variable %v not found", var_name_)
+							return nil, false, fmt.Errorf("variable %v not found", varNameLocal)
 						}
 
 						vt := v.GetType()
@@ -681,21 +681,21 @@ func (ie *InterpreterEnv) InterpreterFuncStep( /* cf *ContextFunc */ ) (bool, er
 							ie.Output.Print("vt %v, FromType(v) %v ok %v\r\n", vt, vv, ok)
 						}
 						if vt == VtString {
-							var_name, _ = FromType(v)
+							varName2, _ = FromType(v) // was varName
 						} else {
-							return nil, false, fmt.Errorf("slot name in variable %v must be string. Now %v", var_name_, vt)
+							return nil, false, fmt.Errorf("slot name in variable %v must be string. Now %v", varNameLocal, vt)
 						}
-						sl = ns.ParseStringBySignList(var_name2, []string{"."})
+						sl = ns.ParseStringBySignList(varName2, []string{"."})
 						if len(sl) > 1 {
 							// ошибка!
 							return nil, false, fmt.Errorf("too more points in %v", name)
 						}
-						var_name2_ := sl[0]
-						v, ok = cf.varDict[var_name2_]
+						varNamelocal2 := sl[0]
+						v, ok = cf.varDict[varNamelocal2]
 						if !ok {
-							return nil, false, fmt.Errorf("variable %v not found", var_name2_)
+							return nil, false, fmt.Errorf("variable %v not found", varNamelocal2)
 						}
-						qri := QueryRelationItem{ObjectType: "relation", Object: var_name2_}
+						qri := QueryRelationItem{ObjectType: "relation", Object: varNamelocal2}
 						qri.Value = v
 						qria = append(qria, qri)
 					}
@@ -720,9 +720,9 @@ func (ie *InterpreterEnv) InterpreterFuncStep( /* cf *ContextFunc */ ) (bool, er
 					ie.Output.Print("array %v\r\n", array)
 				}
 				res := parseArg(array)
-				slot_name := ""
-				var_name := ""
-				var_name2 := ""
+				slotName := ""
+				varName := ""
+				varName2 := ""
 				value := ""
 				if res != nil {
 					state := 0
@@ -761,24 +761,24 @@ func (ie *InterpreterEnv) InterpreterFuncStep( /* cf *ContextFunc */ ) (bool, er
 							}
 						} else if res[i].Type == "var" {
 							if state == 4 {
-								var_name = res[i].Value
+								varName = res[i].Value
 								state = 5
 							} else if state == 11 {
-								var_name = res[i].Value
+								varName = res[i].Value
 								state = 12
 							} else if state == 14 {
-								var_name2 = res[i].Value
+								varName2 = res[i].Value
 								state = 15
 							}
 						} else if res[i].Type == "value" {
 							if state == 2 {
-								slot_name = res[i].Value
+								slotName = res[i].Value
 								state = 3
 							} else if state == 5 {
 								value = res[i].Value
 								state = 7
 							} else if state == 8 {
-								var_name = res[i].Value
+								varName = res[i].Value
 								state = 9
 							} else if state == 0 {
 								value = res[i].Value
@@ -790,29 +790,29 @@ func (ie *InterpreterEnv) InterpreterFuncStep( /* cf *ContextFunc */ ) (bool, er
 						}
 					}
 					if debug > 4 {
-						ie.Output.Print("slot_name %v var_name %v value %v\r\n", slot_name, var_name, value)
+						ie.Output.Print("slot_name %v var_name %v value %v\r\n", slotName, varName, value)
 					}
 					switch state {
 					case 3:
 						if debug > 4 {
-							ie.Output.Print("slot: slot_name %v\r\n", slot_name)
+							ie.Output.Print("slot: slot_name %v\r\n", slotName)
 						}
-						sl := ns.ParseStringBySignList(slot_name, []string{"."})
+						sl := ns.ParseStringBySignList(slotName, []string{"."})
 						if len(sl) > 3 {
 							// ошибка!
-							return nil, false, fmt.Errorf("too more points in %v", slot_name)
+							return nil, false, fmt.Errorf("too more points in %v", slotName)
 						}
-						slot_name_ := sl[0]
-						ari := AddRelationItem{ObjectType: "relation", Object: slot_name_}
+						slotNameLocal := sl[0]
+						ari := AddRelationItem{ObjectType: "relation", Object: slotNameLocal}
 						if len(sl) == 3 {
 							ari.Value = CreateValue(sl[2])
 						}
 						aria = append(aria, ari)
 					case 5:
 						if debug > 4 {
-							ie.Output.Print("var_name: %v\r\n", var_name)
+							ie.Output.Print("var_name: %v\r\n", varName)
 						}
-						sl := ns.ParseStringBySignList(var_name, []string{"."})
+						sl := ns.ParseStringBySignList(varName, []string{"."})
 						if len(sl) > 3 {
 							// ошибка!
 							return nil, false, fmt.Errorf("too more points in %v", name)
@@ -828,21 +828,21 @@ func (ie *InterpreterEnv) InterpreterFuncStep( /* cf *ContextFunc */ ) (bool, er
 							ie.Output.Print("vt %v, FromType(v) %v ok %v\r\n", vt, vv, ok)
 						}
 						if vt == VtString {
-							var_name, _ = FromType(v)
+							varName, _ = FromType(v)
 						} else {
 							return nil, false, fmt.Errorf("slot name in variable %v must be string. Now %v", var_name_, vt)
 						}
 
-						ari := AddRelationItem{ObjectType: "relation", Object: var_name}
+						ari := AddRelationItem{ObjectType: "relation", Object: varName}
 						if len(sl) == 3 {
 							ari.Value = CreateValue(sl[2])
 						}
 						aria = append(aria, ari)
 					case 7:
 						if debug > 4 {
-							ie.Output.Print("slot_name %v value %v\r\n", slot_name, value)
+							ie.Output.Print("slot_name %v value %v\r\n", slotName, value)
 						}
-						sl := ns.ParseStringBySignList(slot_name, []string{"."})
+						sl := ns.ParseStringBySignList(slotName, []string{"."})
 						if len(sl) > 0 {
 							// ошибка!
 							return nil, false, fmt.Errorf("too more points in %v", name)
@@ -852,14 +852,14 @@ func (ie *InterpreterEnv) InterpreterFuncStep( /* cf *ContextFunc */ ) (bool, er
 							// ошибка!
 							return nil, false, fmt.Errorf("too more points in %v", name)
 						}
-						ari := AddRelationItem{ObjectType: "relation", Object: slot_name}
+						ari := AddRelationItem{ObjectType: "relation", Object: slotName}
 						ari.Value = CreateValue(value)
 						aria = append(aria, ari)
 					case 9:
 						if debug > 4 {
-							ie.Output.Print("slot_name %v var_name %v\r\n", slot_name, var_name)
+							ie.Output.Print("slot_name %v var_name %v\r\n", slotName, varName)
 						}
-						sl := ns.ParseStringBySignList(slot_name, []string{"."})
+						sl := ns.ParseStringBySignList(slotName, []string{"."})
 						if len(sl) > 0 {
 							// ошибка!
 							return nil, false, fmt.Errorf("too more points in %v", name)
@@ -869,11 +869,11 @@ func (ie *InterpreterEnv) InterpreterFuncStep( /* cf *ContextFunc */ ) (bool, er
 							// ошибка!
 							return nil, false, fmt.Errorf("too more points in %v", name)
 						}
-						v, ok := cf.varDict[var_name]
+						v, ok := cf.varDict[varName]
 						if !ok {
-							return nil, false, fmt.Errorf("variable %v not found", var_name)
+							return nil, false, fmt.Errorf("variable %v not found", varName)
 						}
-						ari := AddRelationItem{ObjectType: "relation", Object: slot_name}
+						ari := AddRelationItem{ObjectType: "relation", Object: slotName}
 						ari.Value = v
 						aria = append(aria, ari)
 					case 10:
@@ -885,25 +885,25 @@ func (ie *InterpreterEnv) InterpreterFuncStep( /* cf *ContextFunc */ ) (bool, er
 							// ошибка!
 							return nil, false, fmt.Errorf("too more points in %v", value)
 						}
-						slot_name_ := sl[0]
-						ari := AddRelationItem{ObjectType: "relation", Object: slot_name_}
+						slotNameLocal := sl[0]
+						ari := AddRelationItem{ObjectType: "relation", Object: slotNameLocal}
 						if len(sl) == 3 {
 							ari.Value = CreateValue(sl[2])
 						}
 						aria = append(aria, ari)
 					case 12:
 						if debug > 4 {
-							ie.Output.Print("slot: var_name %v\r\n", var_name)
+							ie.Output.Print("slot: var_name %v\r\n", varName)
 						}
-						sl := ns.ParseStringBySignList(var_name, []string{"."})
+						sl := ns.ParseStringBySignList(varName, []string{"."})
 						if len(sl) > 3 {
 							// ошибка!
 							return nil, false, fmt.Errorf("too more points in %v", name)
 						}
-						var_name_ := sl[0]
-						v, ok := cf.varDict[var_name_]
+						varNameLocal := sl[0]
+						v, ok := cf.varDict[varNameLocal]
 						if !ok {
-							return nil, false, fmt.Errorf("variable %v not found", var_name_)
+							return nil, false, fmt.Errorf("variable %v not found", varNameLocal)
 						}
 						vt := v.GetType()
 						vv, ok := FromType(v)
@@ -911,12 +911,12 @@ func (ie *InterpreterEnv) InterpreterFuncStep( /* cf *ContextFunc */ ) (bool, er
 							ie.Output.Print("vt %v, FromType(v) %v ok %v\r\n", vt, vv, ok)
 						}
 						if vt == VtString {
-							var_name, _ = FromType(v)
+							varName, _ = FromType(v)
 						} else {
-							return nil, false, fmt.Errorf("slot name in variable %v must be string. Now %v", var_name_, vt)
+							return nil, false, fmt.Errorf("slot name in variable %v must be string. Now %v", varNameLocal, vt)
 						}
 
-						ari := AddRelationItem{ObjectType: "relation", Object: var_name}
+						ari := AddRelationItem{ObjectType: "relation", Object: varName}
 						if len(sl) == 3 {
 							ari.Value = CreateValue(sl[2])
 						}
@@ -930,25 +930,25 @@ func (ie *InterpreterEnv) InterpreterFuncStep( /* cf *ContextFunc */ ) (bool, er
 							// ошибка!
 							return nil, false, fmt.Errorf("too more points in %v", value)
 						}
-						slot_name_ := sl[0]
-						ari := AddRelationItem{ObjectType: "relation", Object: slot_name_}
+						slotNameLocal := sl[0]
+						ari := AddRelationItem{ObjectType: "relation", Object: slotNameLocal}
 						if len(sl) == 3 {
 							ari.Value = CreateValue(sl[2])
 						}
 						aria = append(aria, ari)
 					case 15:
 						if debug > 4 {
-							ie.Output.Print("slot: var_name %v var_name2 %v\r\n", var_name, var_name2)
+							ie.Output.Print("slot: var_name %v var_name2 %v\r\n", varName, varName2)
 						}
-						sl := ns.ParseStringBySignList(var_name, []string{"."})
+						sl := ns.ParseStringBySignList(varName, []string{"."})
 						if len(sl) > 2 {
 							// ошибка!
 							return nil, false, fmt.Errorf("too more points in %v", name)
 						}
-						var_name_ := sl[0]
-						v, ok := cf.varDict[var_name_]
+						varNameLocal := sl[0]
+						v, ok := cf.varDict[varNameLocal]
 						if !ok {
-							return nil, false, fmt.Errorf("variable %v not found", var_name_)
+							return nil, false, fmt.Errorf("variable %v not found", varNameLocal)
 						}
 
 						vt := v.GetType()
@@ -957,22 +957,22 @@ func (ie *InterpreterEnv) InterpreterFuncStep( /* cf *ContextFunc */ ) (bool, er
 							ie.Output.Print("vt %v, FromType(v) %v ok %v\r\n", vt, vv, ok)
 						}
 						if vt == VtString {
-							var_name, _ = FromType(v)
+							varName2, _ = FromType(v) // was varName
 						} else {
-							return nil, false, fmt.Errorf("slot name in variable %v must be string. Now %v", var_name_, vt)
+							return nil, false, fmt.Errorf("slot name in variable %v must be string. Now %v", varNameLocal, vt)
 						}
 
-						sl = ns.ParseStringBySignList(var_name2, []string{"."})
+						sl = ns.ParseStringBySignList(varName2, []string{"."})
 						if len(sl) > 1 {
 							// ошибка!
 							return nil, false, fmt.Errorf("too more points in %v", name)
 						}
-						var_name2_ := sl[0]
-						v, ok = cf.varDict[var_name2_]
+						varNameLocal2 := sl[0]
+						v, ok = cf.varDict[varNameLocal2]
 						if !ok {
-							return nil, false, fmt.Errorf("variable %v not found", var_name2_)
+							return nil, false, fmt.Errorf("variable %v not found", varNameLocal2)
 						}
-						ari := AddRelationItem{ObjectType: "relation", Object: var_name2_}
+						ari := AddRelationItem{ObjectType: "relation", Object: varNameLocal2}
 						ari.Value = v
 						aria = append(aria, ari)
 					}
@@ -1779,9 +1779,7 @@ func (ie *InterpreterEnv) InterpreterFuncStep( /* cf *ContextFunc */ ) (bool, er
 			ce.stack = ce.stack[:len(ce.stack)-1]
 			ce.current = v
 			// и надо позаботиться о возврате - если был return, то выбираем то что он оставил и заносим в стек
-			for i := range valueReturn {
-				v.stack = append(v.stack, valueReturn[i])
-			}
+			v.stack = append(v.stack, valueReturn...)
 			v.pos = v.pos + 1
 		}
 		return false, nil

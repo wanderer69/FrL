@@ -128,10 +128,16 @@ type SourceItem struct {
 	SourceCode  string
 	Breakpoints []int
 }
+type Variable struct {
+	FuncName string
+	Name     string
+	Type     string
+	Value    string
+}
 
 func (e *Executor) ExecuteFuncWithManyFiles(
 	sourceItems []SourceItem,
-	callback func(string, int, [][]string),
+	callback func(string, int, [][]string, []*Variable),
 	funcStartName string,
 	args ...interface{},
 ) error {
@@ -180,12 +186,20 @@ func (e *Executor) ExecuteFuncWithManyFiles(
 			fn := cf.GetFunc()
 			fnName := fn.Name
 			data := [][]string{}
+			variables := []*Variable{}
 			for k, v := range cf.GetVarDict() {
 				data = append(data, []string{fnName, k, fmt.Sprintf("%v", v.GetType()), v.String()})
+				variable := Variable{
+					FuncName: fnName,
+					Name:     k,
+					Type:     v.GetType().String(),
+					Value:    v.String(),
+				}
+				variables = append(variables, &variable)
 			}
 
 			if callback != nil {
-				callback(bp.FileName, bp.LineNum, data)
+				callback(bp.FileName, bp.LineNum, data, variables)
 			}
 			e.eb.ie.ClearCurrentBreakPoint()
 		}

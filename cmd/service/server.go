@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"net/http"
 	"time"
@@ -13,13 +14,12 @@ import (
 )
 
 func main() {
-	//fmt.Printf("file_in %v\r\n", fileIn)
 	debug.NewDebug()
 
-	wse := &ws.WSEnv{}
+	var port int
+	flag.IntVar(&port, "port", 8083, "server port")
 
-	// var websocketStreem *websocket.Conn
-	//var callback func(wsEnv *ws.WSEnv, messageType int, mo ws.MessageOut) error
+	wse := &ws.WSEnv{}
 
 	toPrint := make(chan ws.MessageOut)
 
@@ -73,7 +73,6 @@ func main() {
 	}
 	printFunc := func(frm string, args ...any) {
 		fmt.Printf(frm, args...)
-		//if callback != nil {
 		str := fmt.Sprintf(frm, args...)
 		var mo ws.MessageOut
 		mo.Id = "0"
@@ -81,13 +80,6 @@ func main() {
 		mo.Result = "Ok"
 		mo.Answer = str
 		toPrint <- mo
-		/*
-			err := callback(wse, 1, mo)
-			if err != nil {
-				fmt.Printf("error %v\r\n", err)
-			}
-		*/
-		//}
 	}
 
 	go printByTime()
@@ -97,9 +89,8 @@ func main() {
 	eb := exec.InitExecutorBase(0, output)
 	e := exec.InitExecutor(eb, 0)
 
-	// websocketStreem =
 	wse.Server(eb, e)
-	//callback = send
 
-	http.ListenAndServe(":8083", nil)
+	path := fmt.Sprintf(":%v", port)
+	http.ListenAndServe(path, nil)
 }

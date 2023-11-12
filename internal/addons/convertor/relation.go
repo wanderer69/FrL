@@ -2,7 +2,7 @@ package convertor
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 )
 
@@ -19,13 +19,13 @@ type Relation struct {
 
 func LoadRelation(file_name string) ([]Relation, error) {
 	result := []Relation{}
-	data, err := ioutil.ReadFile(file_name)
+	data, err := os.ReadFile(file_name)
 	if err != nil {
 		fmt.Print(err)
 		return result, err
 	}
 	s := string(data)
-	sl := strings.Split(s, "\r")
+	sl := strings.Split(s, "\n")
 	state := 0
 
 	var r Relation
@@ -42,14 +42,17 @@ func LoadRelation(file_name string) ([]Relation, error) {
 		ssl := strings.Split(ss, "-")
 		if len(ssl) < 2 {
 			// отношение
-			if state == 0 {
-			} else {
-			}
+			/*
+				if state == 0 {
+				} else {
+				}
+			*/
 			r.RelationItem = append(r.RelationItem, RelationItem{Relation: strings.Trim(ss, " ")})
 			state = 1
 		} else {
 			ss_ := strings.Trim(ssl[0], " ")
-			if ss_ == "вид" {
+			switch ss_ {
+			case "вид":
 				if len(r.RelationItem) > 0 {
 					// сохраняем предыдущее отношение
 					result = append(result, r)
@@ -58,37 +61,76 @@ func LoadRelation(file_name string) ([]Relation, error) {
 
 				r = Relation{}
 				r.RelationType = strings.Trim(ssl[1], " ")
-			} else {
-				if ss_ == "пример" {
-					if state == 1 {
-						state = 2
-					} else {
-						if state == 0 {
-							r.RelationItem = append(r.RelationItem, RelationItem{Relation: r.RelationType})
-							state = 2
-						} else {
 
-						}
-					}
-					r.RelationItem[len(r.RelationItem)-1].RelationExample = append(r.RelationItem[len(r.RelationItem)-1].RelationExample, strings.Trim(ssl[1], " "))
+			case "пример":
+				if state == 1 {
+					state = 2
 				} else {
-					if ss_ == "описание" {
+					if state == 0 {
+						r.RelationItem = append(r.RelationItem, RelationItem{Relation: r.RelationType})
+						state = 2
+						//} else {
+
+					}
+				}
+				r.RelationItem[len(r.RelationItem)-1].RelationExample = append(r.RelationItem[len(r.RelationItem)-1].RelationExample, strings.Trim(ssl[1], " "))
+
+			case "описание":
+				if state == 1 {
+					state = 2
+				} else {
+					if state == 0 {
+						r.RelationItem = append(r.RelationItem, RelationItem{Relation: r.RelationType})
+						state = 2
+						//} else {
+
+					}
+				}
+				r.RelationItem[len(r.RelationItem)-1].RelationDescription = strings.Trim(ssl[1], " ")
+
+			}
+			/*
+				if ss_ == "вид" {
+					if len(r.RelationItem) > 0 {
+						// сохраняем предыдущее отношение
+						result = append(result, r)
+						state = 0
+					}
+
+					r = Relation{}
+					r.RelationType = strings.Trim(ssl[1], " ")
+				} else {
+					if ss_ == "пример" {
 						if state == 1 {
 							state = 2
 						} else {
 							if state == 0 {
 								r.RelationItem = append(r.RelationItem, RelationItem{Relation: r.RelationType})
 								state = 2
-							} else {
+							//} else {
 
 							}
 						}
-						r.RelationItem[len(r.RelationItem)-1].RelationDescription = strings.Trim(ssl[1], " ")
+						r.RelationItem[len(r.RelationItem)-1].RelationExample = append(r.RelationItem[len(r.RelationItem)-1].RelationExample, strings.Trim(ssl[1], " "))
 					} else {
+						if ss_ == "описание" {
+							if state == 1 {
+								state = 2
+							} else {
+								if state == 0 {
+									r.RelationItem = append(r.RelationItem, RelationItem{Relation: r.RelationType})
+									state = 2
+								//} else {
 
+								}
+							}
+							r.RelationItem[len(r.RelationItem)-1].RelationDescription = strings.Trim(ssl[1], " ")
+						//} else {
+
+						}
 					}
 				}
-			}
+			*/
 		}
 	}
 	if len(r.RelationItem) > 0 {
