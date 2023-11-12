@@ -20,3 +20,4 @@
 create_mod.bat
 go_mod_tidy.bat
 __debug_bin
+Frames/
