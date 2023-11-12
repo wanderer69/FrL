@@ -35,7 +35,7 @@ func main() {
 
 	// настраиваем окружение
 	fe := frl.NewFrameEnvironment()
-	fe.FrameDict = make(map[string][]*frl.Frame)
+	//fe.FrameDict = make(map[string][]*frl.Frame)
 
 	if false {
 		ns, err := frl.NewStore("./Frames", output)

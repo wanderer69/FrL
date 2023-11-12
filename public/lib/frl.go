@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"sync"
 	"unicode/utf8"
 
 	fnc "github.com/wanderer69/FrL/public/functions"
@@ -434,13 +435,17 @@ func FromType(value *Value) (string, bool) {
 }
 
 type FrameEnvironment struct {
-	FrameDict map[string][]*Frame // словарь фреймов в разных разрезах
+	mu        *sync.Mutex
+	frameDict map[string][]*Frame // словарь фреймов в разных разрезах
 	Frames    []*Frame            // список всех вреймов
 }
 
 func NewFrameEnvironment() *FrameEnvironment {
-	fe := FrameEnvironment{}
-	fe.FrameDict = make(map[string][]*Frame)
+	fe := FrameEnvironment{
+		mu:        &sync.Mutex{},
+		frameDict: make(map[string][]*Frame),
+	}
+
 	// надо добавить фрейм с определением отношения
 	f := NewFrame()
 	// добавляем поле уникального идентификатора
@@ -453,6 +458,10 @@ func NewFrameEnvironment() *FrameEnvironment {
 	fe.AddRelations(f, AddRelationItem{"relation", "отношение", v})
 
 	return &fe
+}
+
+func (fe *FrameEnvironment) GetFrameDict() map[string][]*Frame {
+	return fe.frameDict
 }
 
 /*
@@ -496,13 +505,17 @@ func (fe *FrameEnvironment) QueryRelations(qria ...QueryRelationItem) ([]*Frame,
 	if n == 1 {
 		// выполняем запрос на глобальном словаре
 		mask := fmt.Sprintf("frame_%v", qria[pos].Value)
-		lst, ok = fe.FrameDict[mask]
+		fe.mu.Lock()
+		lst, ok = fe.frameDict[mask]
+		fe.mu.Unlock()
 		if !ok {
 			return lst, nil
 		}
 	} else {
 		mask := fmt.Sprintf("relation_%v", qria[num].Object)
-		lst_, ok_ := fe.FrameDict[mask]
+		fe.mu.Lock()
+		lst_, ok_ := fe.frameDict[mask]
+		fe.mu.Unlock()
 		if !ok_ {
 			return lst, nil
 		}
@@ -592,17 +605,39 @@ func (fe *FrameEnvironment) AddRelations(Frame *Frame, qri ...AddRelationItem) {
 
 	for i := 0; i < len(maska); i++ {
 		s := maska[i]
-		ff := fe.FrameDict[s]
-		fe.FrameDict[s] = append(ff, Frame)
+		fe.mu.Lock()
+		ff := fe.frameDict[s]
+		fe.frameDict[s] = append(ff, Frame)
+		fe.mu.Unlock()
 	}
 }
 
 func (fe *FrameEnvironment) DeleteRelations(relation string) {
 	mask := fmt.Sprintf("relation_%v", relation)
-	delete(fe.FrameDict, mask)
+	fe.mu.Lock()
+	delete(fe.frameDict, mask)
+	fe.mu.Unlock()
 }
 
 func (fe *FrameEnvironment) DeleteFrameRelations(f *Frame) {
+	if f == nil {
+		return
+	}
+	it := f.Iterate()
+	for {
+		sl, fl, err := it()
+		if err != nil {
+			break
+		}
+		f.DeleteSlot(sl.name)
+		mask := fmt.Sprintf("relation_%v", sl.name)
+		fe.mu.Lock()
+		delete(fe.frameDict, mask)
+		fe.mu.Unlock()
+		if fl {
+			break
+		}
+	}
 }
 
 func (fe *FrameEnvironment) NewFrameWithRelation() *Frame {

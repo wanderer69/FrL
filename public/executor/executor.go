@@ -10,21 +10,25 @@ import (
 
 type ExecutorBase struct {
 	fe     *frl.FrameEnvironment
-	ie     *frl.InterpreterEnv
 	output *print.Output
 }
 
 type Executor struct {
-	eb    *ExecutorBase
-	debug int
+	eb     *ExecutorBase
+	ie     *frl.InterpreterEnv
+	debug  int
+	output *print.Output
 }
 
 func InitExecutorBase(debug int, output *print.Output) *ExecutorBase {
-	eb := &ExecutorBase{}
-	// настраиваем окружение
-	fe := frl.NewFrameEnvironment()
-	fe.FrameDict = make(map[string][]*frl.Frame)
+	return &ExecutorBase{
+		// настраиваем окружение
+		fe:     frl.NewFrameEnvironment(),
+		output: output,
+	}
+}
 
+func InitExecutor(eb *ExecutorBase, output *print.Output, debug int) *Executor {
 	ie := frl.NewInterpreterEnv()
 	ie.SetDebug(debug) //xfd xff xff
 	ie.BindFunction(frl.Print_internal)
@@ -60,20 +64,15 @@ func InitExecutorBase(debug int, output *print.Output) *ExecutorBase {
 	ie.BindFunction(frl.DeleteSlotFrame_internal)
 	ie.BindFunction(frl.EvalString_internal)
 
-	ie.SetFrameEnvironment(fe)
+	ie.SetFrameEnvironment(eb.fe)
+	ie.FE = eb.fe
 
-	eb.fe = fe
-	eb.ie = ie
-	eb.output = output
-	eb.ie.Output = output
-	eb.ie.FE = fe
-	return eb
-}
+	ie.Output = output
 
-func InitExecutor(eb *ExecutorBase, debug int) *Executor {
 	return &Executor{
 		eb:    eb,
 		debug: debug,
+		ie:    ie,
 	}
 }
 
@@ -90,12 +89,12 @@ func (e *Executor) Exec(fileIn string, funcStartName string, args ...interface{}
 }
 
 func (e *Executor) ExecString(fileName string, data string, funcStartName string, args ...interface{}) error {
-	_, err := e.eb.ie.TranslateText(fileName, data, e.debug, e.eb.ie.Output)
+	_, err := e.ie.TranslateText(fileName, data, e.debug, e.ie.Output)
 	if err != nil {
 		return fmt.Errorf("translate error: %w", err)
 	}
 
-	ce, err := e.eb.ie.CreateContextEnv()
+	ce, err := e.ie.CreateContextEnv()
 	if err != nil {
 		return fmt.Errorf("create context error %w", err)
 	}
@@ -107,12 +106,12 @@ func (e *Executor) ExecString(fileName string, data string, funcStartName string
 	for _, arg := range args {
 		values = append(values, frl.CreateValue(arg))
 	}
-	_, err = e.eb.ie.InterpreterFunc(ce, funcStartName, values)
+	_, err = e.ie.InterpreterFunc(ce, funcStartName, values)
 	if err != nil {
 		return fmt.Errorf("intrepreter function error %w", err)
 	}
 	for {
-		flag, err := e.eb.ie.InterpreterFuncStep()
+		flag, err := e.ie.InterpreterFuncStep()
 		if err != nil {
 			return fmt.Errorf("interpreter  function step %w", err)
 		}
@@ -128,6 +127,7 @@ type SourceItem struct {
 	SourceCode  string
 	Breakpoints []int
 }
+
 type Variable struct {
 	FuncName string
 	Name     string
@@ -147,16 +147,16 @@ func (e *Executor) ExecuteFuncWithManyFiles(
 			breakPoint := frl.BreakPoint{FileName: sourceItem.Name, LineNum: breakpoint}
 			breakPoints = append(breakPoints, &breakPoint)
 		}
-		_, err := e.eb.ie.TranslateText(sourceItem.Name, sourceItem.SourceCode, e.debug, e.eb.ie.Output)
+		_, err := e.ie.TranslateText(sourceItem.Name, sourceItem.SourceCode, e.debug, e.ie.Output)
 		if err != nil {
 			return fmt.Errorf("translate error: %w", err)
 		}
 		if len(breakPoints) > 0 {
-			e.eb.ie.AddBreakPoints(breakPoints)
+			e.ie.AddBreakPoints(breakPoints)
 		}
 	}
 
-	ce, err := e.eb.ie.CreateContextEnv()
+	ce, err := e.ie.CreateContextEnv()
 	if err != nil {
 		return fmt.Errorf("create context error %w", err)
 	}
@@ -168,19 +168,19 @@ func (e *Executor) ExecuteFuncWithManyFiles(
 	for _, arg := range args {
 		values = append(values, frl.CreateValue(arg))
 	}
-	_, err = e.eb.ie.InterpreterFunc(ce, funcStartName, values)
+	_, err = e.ie.InterpreterFunc(ce, funcStartName, values)
 	if err != nil {
 		return fmt.Errorf("intrepreter function error %w", err)
 	}
 	for {
-		flag, err := e.eb.ie.InterpreterFuncStep()
+		flag, err := e.ie.InterpreterFuncStep()
 		if err != nil {
 			return fmt.Errorf("interpreter  function step %w", err)
 		}
 		if flag {
 			break
 		}
-		bp := e.eb.ie.GetCurrentBreakPoint()
+		bp := e.ie.GetCurrentBreakPoint()
 		if bp != nil {
 			cf := ce.GetCurrentFunc()
 			fn := cf.GetFunc()
@@ -201,7 +201,7 @@ func (e *Executor) ExecuteFuncWithManyFiles(
 			if callback != nil {
 				callback(bp.FileName, bp.LineNum, data, variables)
 			}
-			e.eb.ie.ClearCurrentBreakPoint()
+			e.ie.ClearCurrentBreakPoint()
 		}
 	}
 	return nil
@@ -211,7 +211,7 @@ func (e *Executor) TranslateManyFiles(
 	sourceItems []SourceItem,
 ) error {
 	for _, sourceItem := range sourceItems {
-		_, err := e.eb.ie.TranslateText(sourceItem.Name, sourceItem.SourceCode, e.debug, e.eb.ie.Output)
+		_, err := e.ie.TranslateText(sourceItem.Name, sourceItem.SourceCode, e.debug, e.ie.Output)
 		if err != nil {
 			return fmt.Errorf("translate error: %w", err)
 		}

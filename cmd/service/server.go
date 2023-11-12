@@ -87,7 +87,7 @@ func main() {
 	output := print.NewOutput(printFunc)
 
 	eb := exec.InitExecutorBase(0, output)
-	e := exec.InitExecutor(eb, 0)
+	e := exec.InitExecutor(eb, output, 0)
 
 	wse.Server(eb, e)
 
