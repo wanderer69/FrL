@@ -86,8 +86,18 @@ func main() {
 
 	output := print.NewOutput(printFunc)
 
-	eb := exec.InitExecutorBase(0, output)
-	e := exec.InitExecutor(eb, output, 0)
+	translatePrintFunc := func(frm string, args ...any) {
+		fmt.Printf(frm, args...)
+	}
+	outputTranslate := print.NewOutput(translatePrintFunc)
+
+	basePrintFunc := func(frm string, args ...any) {
+		fmt.Printf(frm, args...)
+	}
+	outputBaseTranslate := print.NewOutput(basePrintFunc)
+
+	eb := exec.InitExecutorBase(0, outputBaseTranslate)
+	e := exec.InitExecutor(eb, output, outputTranslate, 0)
 
 	wse.Server(eb, e)
 

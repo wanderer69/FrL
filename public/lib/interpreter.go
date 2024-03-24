@@ -22,8 +22,9 @@ type BreakPoint struct {
 
 // Это интерпретатор кода который может транслировать исходный текст в массив операторов, интерпретировать его, сохранять операторы и загружать их.
 type InterpreterEnv struct {
-	Output *print.Output
-	FE     *FrameEnvironment
+	Output          *print.Output
+	OutputTranslate *print.Output
+	FE              *FrameEnvironment
 
 	debug          int
 	functions      []*fnc.Function

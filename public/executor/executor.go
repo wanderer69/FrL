@@ -28,7 +28,7 @@ func InitExecutorBase(debug int, output *print.Output) *ExecutorBase {
 	}
 }
 
-func InitExecutor(eb *ExecutorBase, output *print.Output, debug int) *Executor {
+func InitExecutor(eb *ExecutorBase, output *print.Output, outputTranslate *print.Output, debug int) *Executor {
 	ie := frl.NewInterpreterEnv()
 	ie.SetDebug(debug) //xfd xff xff
 	ie.BindFunction(frl.Print_internal)
@@ -68,6 +68,7 @@ func InitExecutor(eb *ExecutorBase, output *print.Output, debug int) *Executor {
 	ie.FE = eb.fe
 
 	ie.Output = output
+	ie.OutputTranslate = outputTranslate
 
 	return &Executor{
 		eb:    eb,
@@ -89,7 +90,7 @@ func (e *Executor) Exec(fileIn string, funcStartName string, args ...interface{}
 }
 
 func (e *Executor) ExecString(fileName string, data string, funcStartName string, args ...interface{}) error {
-	_, err := e.ie.TranslateText(fileName, data, e.debug, e.ie.Output)
+	_, err := e.ie.TranslateText(fileName, data, e.debug, e.ie.OutputTranslate)
 	if err != nil {
 		return fmt.Errorf("translate error: %w", err)
 	}
@@ -147,7 +148,7 @@ func (e *Executor) ExecuteFuncWithManyFiles(
 			breakPoint := frl.BreakPoint{FileName: sourceItem.Name, LineNum: breakpoint}
 			breakPoints = append(breakPoints, &breakPoint)
 		}
-		_, err := e.ie.TranslateText(sourceItem.Name, sourceItem.SourceCode, e.debug, e.ie.Output)
+		_, err := e.ie.TranslateText(sourceItem.Name, sourceItem.SourceCode, e.debug, e.ie.OutputTranslate)
 		if err != nil {
 			return fmt.Errorf("translate error: %w", err)
 		}
@@ -211,7 +212,7 @@ func (e *Executor) TranslateManyFiles(
 	sourceItems []SourceItem,
 ) error {
 	for _, sourceItem := range sourceItems {
-		_, err := e.ie.TranslateText(sourceItem.Name, sourceItem.SourceCode, e.debug, e.ie.Output)
+		_, err := e.ie.TranslateText(sourceItem.Name, sourceItem.SourceCode, e.debug, e.ie.OutputTranslate)
 		if err != nil {
 			return fmt.Errorf("translate error: %w", err)
 		}

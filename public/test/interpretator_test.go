@@ -728,11 +728,15 @@ func TestTranslatorExec(t *testing.T) {
 		fmt.Printf(frm, args...)
 	}
 	output := print.NewOutput(printFunc)
+	translatePrintFunc := func(frm string, args ...any) {
+		fmt.Printf(frm, args...)
+	}
+	outputTranslate := print.NewOutput(translatePrintFunc)
 	for _, fileIn := range files {
 		fmt.Printf("file_in %v\r\n", path+fileIn)
 		t.Run("exec "+fileIn, func(t *testing.T) {
 			eb := exec.InitExecutorBase(0, output)
-			e := exec.InitExecutor(eb, output, 0)
+			e := exec.InitExecutor(eb, output, outputTranslate, 0)
 			err := e.Exec(path+fileIn, "пример1", "1", "2")
 			require.NoError(t, err)
 		})
@@ -751,11 +755,15 @@ func TestTranslatorExecBad(t *testing.T) {
 		fmt.Printf(frm, args...)
 	}
 	output := print.NewOutput(printFunc)
+	translatePrintFunc := func(frm string, args ...any) {
+		fmt.Printf(frm, args...)
+	}
+	outputTranslate := print.NewOutput(translatePrintFunc)
 	for _, fileIn := range files {
 		fmt.Printf("file_in %v\r\n", path+fileIn)
 		t.Run("exec "+fileIn, func(t *testing.T) {
 			eb := exec.InitExecutorBase(0, output)
-			e := exec.InitExecutor(eb, output, 0)
+			e := exec.InitExecutor(eb, output, outputTranslate, 0)
 			err := e.Exec(path+fileIn, "пример1", "1", "2")
 			//require.NoError(t, err)
 			require.ErrorContains(t, err, "translate error")
@@ -776,11 +784,15 @@ func TestTranslatorExecLineNum(t *testing.T) {
 		fmt.Printf(frm, args...)
 	}
 	output := print.NewOutput(printFunc)
+	translatePrintFunc := func(frm string, args ...any) {
+		fmt.Printf(frm, args...)
+	}
+	outputTranslate := print.NewOutput(translatePrintFunc)
 	for _, fileIn := range files {
 		fmt.Printf("file_in %v\r\n", path+fileIn)
 		t.Run("exec "+fileIn, func(t *testing.T) {
 			eb := exec.InitExecutorBase(0xff, output)
-			e := exec.InitExecutor(eb, output, 0)
+			e := exec.InitExecutor(eb, output, outputTranslate, 0)
 			err := e.Exec(path+fileIn, "пример1", "1", "2")
 			require.NoError(t, err)
 		})
