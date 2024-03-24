@@ -346,7 +346,7 @@ func (ie *InterpreterEnv) TranslateText(name string, data string, debug int, o *
 	for i := range rEnv.Functions {
 		rEnv.Functions[i].FileName = name
 		ie.AddFunction(rEnv.Functions[i])
-		ie.Output.Print("f %v\r\n", rEnv.Functions[i])
+		//ie.Output.Print("f %v\r\n", rEnv.Functions[i])
 		fnc.PrintFunction(rEnv.Functions[i])
 
 		fv := CreateValue(rEnv.Functions[i])
@@ -1762,7 +1762,7 @@ func (ie *InterpreterEnv) InterpreterFuncStep( /* cf *ContextFunc */ ) (bool, er
 
 	case ops.OpCline:
 		num := op.Attributes[0].Number + 1
-		ie.Output.Print("file name %v function name %v line: %v\r\n", cf.function.FileName, cf.function.Name, num)
+		//ie.Output.Print("file name %v function name %v line: %v\r\n", cf.function.FileName, cf.function.Name, num)
 		k := fmt.Sprintf("%v_%v", cf.function.FileName, num)
 		bp, ok := ie.breakPointsList[k]
 		if ok {
