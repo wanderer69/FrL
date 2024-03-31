@@ -2773,16 +2773,16 @@ func fConnectExternalFunction(pi parser.ParseItem, env *parser.Env, level int) (
 	switch env.CE.State {
 	case 0:
 		// это просто секция по сути
-		function_name := pi.Items[1].Data
-		args_list := pi.Items[2].Data
-		alias_function_name := pi.Items[4].Data
+		functionName := pi.Items[1].Data
+		argsList := pi.Items[2].Data
+		aliasFunctionName := pi.Items[4].Data
 
-		result = fmt.Sprintf("(set_external_function %v (%v) as %v)", function_name, args_list, alias_function_name)
+		result = fmt.Sprintf("(set_external_function %v (%v) as %v)", functionName, argsList, aliasFunctionName)
 		env.CE.State = 1000
 
 		rp := env.Struct.(FrameParser)
 
-		b := strings.Trim(args_list, " ")
+		b := strings.Trim(argsList, " ")
 		args := strings.Split(b, ",")
 		args_ext := []string{}
 		for i := range args {
@@ -2796,7 +2796,7 @@ func fConnectExternalFunction(pi parser.ParseItem, env *parser.Env, level int) (
 		}
 		na := len(args)
 
-		r := fnc.ExternalFunction{Name: function_name, NumArgs: na, Args: args_ext}
+		r := fnc.ExternalFunction{Name: functionName, NumArgs: na, Args: args_ext, Alias: aliasFunctionName}
 		rp.Env.AddExternalFunction(r)
 		env.Struct = rp
 	}

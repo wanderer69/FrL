@@ -714,24 +714,22 @@ func TestTranslatorExec(t *testing.T) {
 		fileName string
 		debug    int
 	}{
-		/*
-			{fileName: "test_вложенный_для_каждого.frm", debug: 0},
-			{fileName: "test_встроенных_функций.frm", debug: 0},
-			{fileName: "test_вызов_функции.frm", debug: 0},
-			{fileName: "test_вызов_функции_с_возвратом.frm", debug: 0},
-			{fileName: "test_для_каждого.frm", debug: 0},
-			{fileName: "test_если.frm", debug: 0},
-			//		{fileName: "test_нагрузочный.frm", debug: 0},
-			//		{fileName: "test_нагрузочный_памяти.frm", debug: 0},
-			{fileName: "test_пока.frm", debug: 0},
-			{fileName: "test_пока_вложенный.frm", debug: 0},
-			{fileName: "test_потока.frm", debug: 0},
-			{fileName: "test_потока_full.frm", debug: 0},
-			{fileName: "test_присваивание_константы_в_переменную.frm", debug: 0},
-			{fileName: "test_присваивание_константы_поиск_фрейма_в_переменную.frm", debug: 0},
-			{fileName: "test_присваивание_списка_в_переменную.frm", debug: 0},
-			{fileName: "test_форматировать.frm", debug: 0},
-		*/
+		{fileName: "test_вложенный_для_каждого.frm", debug: 0},
+		{fileName: "test_встроенных_функций.frm", debug: 0},
+		{fileName: "test_вызов_функции.frm", debug: 0},
+		{fileName: "test_вызов_функции_с_возвратом.frm", debug: 0},
+		{fileName: "test_для_каждого.frm", debug: 0},
+		{fileName: "test_если.frm", debug: 0},
+		//		{fileName: "test_нагрузочный.frm", debug: 0},
+		//		{fileName: "test_нагрузочный_памяти.frm", debug: 0},
+		{fileName: "test_пока.frm", debug: 0},
+		{fileName: "test_пока_вложенный.frm", debug: 0},
+		{fileName: "test_потока.frm", debug: 0},
+		{fileName: "test_потока_full.frm", debug: 0},
+		{fileName: "test_присваивание_константы_в_переменную.frm", debug: 0},
+		{fileName: "test_присваивание_константы_поиск_фрейма_в_переменную.frm", debug: 0},
+		{fileName: "test_присваивание_списка_в_переменную.frm", debug: 0},
+		{fileName: "test_форматировать.frm", debug: 0},
 		{fileName: "test_фрейм.frm", debug: 0},
 	}
 	printFunc := func(frm string, args ...any) {
@@ -747,6 +745,55 @@ func TestTranslatorExec(t *testing.T) {
 		t.Run("exec_"+fileIn.fileName, func(t *testing.T) {
 			eb := exec.InitExecutorBase(0, output)
 			extFunctions := make(map[string]func(args []*frl.Value) ([]*frl.Value, bool, error))
+			e := exec.InitExecutor(eb, extFunctions, output, outputTranslate, fileIn.debug)
+			err := e.Exec(path+fileIn.fileName, "пример1", "1", "2")
+			require.NoError(t, err)
+		})
+	}
+	os.Remove("./test_file_new.txt")
+}
+
+func TestTranslatorExecExtFunc(t *testing.T) {
+	debug.NewDebug()
+	path := "../../data/scripts/lang/"
+
+	files := []struct {
+		fileName string
+		debug    int
+	}{
+		{fileName: "test_вызов_функции_расширения.frm", debug: 0},
+	}
+	printFunc := func(frm string, args ...any) {
+		fmt.Printf(frm, args...)
+	}
+	output := print.NewOutput(printFunc)
+	translatePrintFunc := func(frm string, args ...any) {
+		fmt.Printf(frm, args...)
+	}
+
+	extFunctions := make(map[string]func(args []*frl.Value) ([]*frl.Value, bool, error))
+	extFunctions["ExternalFunction"] = func(args []*frl.Value) ([]*frl.Value, bool, error) {
+		for i := range args {
+			arg := args[i]
+			fmt.Printf("-> %v %v\r\n", arg.GetType(), arg.GetValue())
+		}
+		result := frl.NewValue(int(frl.VtString), "lao jao wong")
+		return []*frl.Value{result}, true, nil
+	}
+	extFunctions["ExternalFunction1"] = func(args []*frl.Value) ([]*frl.Value, bool, error) {
+		for i := range args {
+			arg := args[i]
+			fmt.Printf("-> %v %v\r\n", arg.GetType(), arg.GetValue())
+		}
+		result := frl.NewValue(int(frl.VtString), "в лесу родилась елочка")
+		return []*frl.Value{result}, true, nil
+	}
+
+	outputTranslate := print.NewOutput(translatePrintFunc)
+	for _, fileIn := range files {
+		fmt.Printf("file_in %v\r\n", path+fileIn.fileName)
+		t.Run("exec_"+fileIn.fileName, func(t *testing.T) {
+			eb := exec.InitExecutorBase(0, output)
 			e := exec.InitExecutor(eb, extFunctions, output, outputTranslate, fileIn.debug)
 			err := e.Exec(path+fileIn.fileName, "пример1", "1", "2")
 			require.NoError(t, err)

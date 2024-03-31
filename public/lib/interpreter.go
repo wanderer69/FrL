@@ -234,9 +234,25 @@ func (ie *InterpreterEnv) AddFunction(function *fnc.Function) error {
 }
 
 func (ie *InterpreterEnv) AddExternalFunction(extFunc *fnc.ExternalFunction) error {
-	_, ok := ie.extFuncs[extFunc.Name]
+	_, ok := ie.extFuncs[extFunc.Alias]
 	if ok {
-		return fmt.Errorf("method %v found", extFunc.Name)
+		return fmt.Errorf("ext function %v found", extFunc.Alias)
+	}
+	ffn, ok := ie.ExternalFunctions[extFunc.Name]
+	if !ok {
+		return fmt.Errorf("ext function %v not found", extFunc.Name)
+	}
+	newFunc := func(args []interface{}) ([]interface{}, bool, error) {
+		argsInt := []*Value{}
+		for i := range args {
+			argsInt = append(argsInt, args[i].(*Value))
+		}
+		resultInt, flag, err := ffn(argsInt)
+		result := []interface{}{}
+		for i := range resultInt {
+			result = append(result, resultInt[i])
+		}
+		return result, flag, err
 	}
 	external := func(ie *InterpreterEnv, state int, if_ *ExternalFunction, args []*Value) (*ExternalFunction, []*Value, bool, error) {
 		// принцип аналогичен команде однако есть отличие так как вычисление идет в две итерации
@@ -245,16 +261,19 @@ func (ie *InterpreterEnv) AddExternalFunction(extFunc *fnc.ExternalFunction) err
 		// 2. собственно вычисление
 		switch state {
 		case 0:
-			if_n := &ExternalFunction{Name: extFunc.Alias, NumArgs: extFunc.NumArgs, Func: extFunc.Func} // имя
+			if_n := &ExternalFunction{Name: extFunc.Alias, NumArgs: extFunc.NumArgs, Func: newFunc} // имя
 			return if_n, nil, false, nil
 		case 1:
-			if_n := &ExternalFunction{Name: extFunc.Alias, NumArgs: extFunc.NumArgs, Func: extFunc.Func} // имя
+			if_n := &ExternalFunction{Name: extFunc.Alias, NumArgs: extFunc.NumArgs, Func: newFunc} // имя
 			return if_n, nil, false, nil
 		case 2:
 			if if_ != nil {
 				result := []*Value{}
 				if if_.Func != nil {
 					argsInt := []interface{}{}
+					for i := range args {
+						argsInt = append(argsInt, args[i])
+					}
 					resultInt, flag, err := if_.Func(argsInt)
 					if err != nil {
 						return nil, nil, false, err
@@ -269,7 +288,7 @@ func (ie *InterpreterEnv) AddExternalFunction(extFunc *fnc.ExternalFunction) err
 		}
 		return nil, nil, false, nil
 	}
-	ie.extFuncs[extFunc.Name] = external
+	ie.extFuncs[extFunc.Alias] = external
 
 	return nil
 }
@@ -324,19 +343,34 @@ func (ie *InterpreterEnv) CallFunction(name string, vl []*Value /*, cfo *Context
 			}
 		}
 	} else {
-		// проверяем созданную функцию
-		_, ok := ie.functionsDict[name]
-		if !ok {
-			return false, nil, true, fmt.Errorf("function %v not found", name)
+		fn, ok := ie.extFuncs[name]
+		if ok {
+			// спрашиваем число аргументов
+			if_, _, _, _ := fn(ie, 1, nil, nil)
+			if if_ != nil {
+				if_.Args = vl
+				if_, result, ok, err := fn(ie, 2, if_, vl)
+				if if_ != nil {
+					return true, result, ok, err
+				} else {
+					return true, nil, ok, err
+				}
+			}
+		} else {
+			// проверяем созданную функцию
+			_, ok := ie.functionsDict[name]
+			if !ok {
+				return false, nil, true, fmt.Errorf("function %v not found", name)
+			}
+			// формируем вызов
+			ce := ie.contextEnv[len(ie.contextEnv)-1]
+			cf, err1 := ie.CreateContextFunc(ce, name, vl)
+			if err1 != nil {
+				return false, nil, true, fmt.Errorf("create context func error %v", err1)
+			}
+			ce.stack = append(ce.stack, ce.current)
+			ce.current = cf
 		}
-		// формируем вызов
-		ce := ie.contextEnv[len(ie.contextEnv)-1]
-		cf, err1 := ie.CreateContextFunc(ce, name, vl)
-		if err1 != nil {
-			return false, nil, true, fmt.Errorf("create context func error %v", err1)
-		}
-		ce.stack = append(ce.stack, ce.current)
-		ce.current = cf
 	}
 	return false, nil, true, nil
 }
