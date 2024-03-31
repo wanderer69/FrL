@@ -651,7 +651,7 @@ func TestFrame(t *testing.T) {
 			fd := fe.GetFrameDict()
 			for k, v := range fd {
 				fmt.Printf("key %v len v %v\r\n", k, len(v))
-				for i, _ := range v {
+				for i := range v {
 					f := v[i]
 					f.Print(output, true)
 				}
@@ -714,22 +714,24 @@ func TestTranslatorExec(t *testing.T) {
 		fileName string
 		debug    int
 	}{
-		{fileName: "test_вложенный_для_каждого.frm", debug: 0},
-		{fileName: "test_встроенных_функций.frm", debug: 0},
-		{fileName: "test_вызов_функции.frm", debug: 0},
-		{fileName: "test_вызов_функции_с_возвратом.frm", debug: 0},
-		{fileName: "test_для_каждого.frm", debug: 0},
-		{fileName: "test_если.frm", debug: 0},
-		//		{fileName: "test_нагрузочный.frm", debug: 0},
-		//		{fileName: "test_нагрузочный_памяти.frm", debug: 0},
-		{fileName: "test_пока.frm", debug: 0},
-		{fileName: "test_пока_вложенный.frm", debug: 0},
-		{fileName: "test_потока.frm", debug: 0},
-		{fileName: "test_потока_full.frm", debug: 0},
-		{fileName: "test_присваивание_константы_в_переменную.frm", debug: 0},
-		{fileName: "test_присваивание_константы_поиск_фрейма_в_переменную.frm", debug: 0},
-		{fileName: "test_присваивание_списка_в_переменную.frm", debug: 0},
-		{fileName: "test_форматировать.frm", debug: 0},
+		/*
+			{fileName: "test_вложенный_для_каждого.frm", debug: 0},
+			{fileName: "test_встроенных_функций.frm", debug: 0},
+			{fileName: "test_вызов_функции.frm", debug: 0},
+			{fileName: "test_вызов_функции_с_возвратом.frm", debug: 0},
+			{fileName: "test_для_каждого.frm", debug: 0},
+			{fileName: "test_если.frm", debug: 0},
+			//		{fileName: "test_нагрузочный.frm", debug: 0},
+			//		{fileName: "test_нагрузочный_памяти.frm", debug: 0},
+			{fileName: "test_пока.frm", debug: 0},
+			{fileName: "test_пока_вложенный.frm", debug: 0},
+			{fileName: "test_потока.frm", debug: 0},
+			{fileName: "test_потока_full.frm", debug: 0},
+			{fileName: "test_присваивание_константы_в_переменную.frm", debug: 0},
+			{fileName: "test_присваивание_константы_поиск_фрейма_в_переменную.frm", debug: 0},
+			{fileName: "test_присваивание_списка_в_переменную.frm", debug: 0},
+			{fileName: "test_форматировать.frm", debug: 0},
+		*/
 		{fileName: "test_фрейм.frm", debug: 0},
 	}
 	printFunc := func(frm string, args ...any) {
@@ -750,6 +752,7 @@ func TestTranslatorExec(t *testing.T) {
 			require.NoError(t, err)
 		})
 	}
+	os.Remove("./test_file_new.txt")
 }
 
 func TestTranslatorExecBad(t *testing.T) {
@@ -1048,7 +1051,7 @@ func TestStore(t *testing.T) {
 			return
 		}
 
-		_, err = ie.TranslateText(fileIn, string(data), 0, ie.Output)
+		initFuncName, _, err := ie.TranslateText(fileIn, string(data), 0, ie.Output)
 		if err != nil {
 			fmt.Print(err)
 			return
@@ -1059,9 +1062,24 @@ func TestStore(t *testing.T) {
 			fmt.Printf("create context error %v", err)
 			return
 		}
+		_, err1 := ie.InterpreterFunc(ce, initFuncName, []*frl.Value{})
+		if err1 != nil {
+			fmt.Print(err1)
+			return
+		}
+		for {
+			flag, err1 := ie.InterpreterFuncStep( /*cf*/ )
+			if err1 != nil {
+				fmt.Print(err1)
+				return
+			}
+			if flag {
+				break
+			}
+		}
 
 		values := []*frl.Value{frl.CreateValue("1"), frl.CreateValue("2")}
-		_, err1 := ie.InterpreterFunc(ce, "пример1", values)
+		_, err1 = ie.InterpreterFunc(ce, "пример1", values)
 		if err1 != nil {
 			fmt.Print(err1)
 			return

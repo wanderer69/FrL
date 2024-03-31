@@ -12,8 +12,9 @@ import (
 	"github.com/wanderer69/debug"
 
 	uuid "github.com/satori/go.uuid"
+	"github.com/wanderer69/FrL/public/entity"
 	fnc "github.com/wanderer69/FrL/public/functions"
-	print "github.com/wanderer69/tools/parser/print"
+	"github.com/wanderer69/tools/parser/print"
 )
 
 type ValueType int
@@ -802,11 +803,51 @@ func (value1 *Value) EvalString(ie *InterpreterEnv) (*Value, error) {
 		ce := ie.contextEnv[len(ie.contextEnv)-1]
 		cf := ce.current
 
-		fvl, err := ie.TranslateText(cf.function.Name, s, 0, ie.Output)
+		initFuncName, fvl, err := ie.TranslateText(cf.function.Name, s, 0, ie.Output)
 		if err != nil {
 			return nil, err
 		}
 		v_data := CreateValue(fvl)
+
+		if len(initFuncName) > 0 {
+			_, err = ie.InterpreterFunc(ce, initFuncName, []*Value{})
+			if err != nil {
+				return nil, fmt.Errorf("intrepreter function error %w", err)
+			}
+			for {
+				flag, err := ie.InterpreterFuncStep()
+				if err != nil {
+					return nil, fmt.Errorf("interpreter  function step %w", err)
+				}
+				if flag {
+					break
+				}
+				bp := ie.GetCurrentBreakPoint()
+				if bp != nil {
+					cf := ce.GetCurrentFunc()
+					fn := cf.GetFunc()
+					fnName := fn.Name
+					data := [][]string{}
+					variables := []*entity.Variable{}
+					for k, v := range cf.GetVarDict() {
+						data = append(data, []string{fnName, k, fmt.Sprintf("%v", v.GetType()), v.String()})
+						variable := entity.Variable{
+							FuncName: fnName,
+							Name:     k,
+							Type:     v.GetType().String(),
+							Value:    v.String(),
+						}
+						variables = append(variables, &variable)
+					}
+					/*
+						if callback != nil {
+							callback(bp.FileName, bp.LineNum, data, variables)
+						}
+					*/
+					ie.ClearCurrentBreakPoint()
+				}
+			}
+		}
 		return v_data, nil
 	}
 	return nil, nil

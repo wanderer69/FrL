@@ -199,6 +199,36 @@ func fFrames(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 
 		rp := env.Struct.(FrameParser)
 
+		op := &ops.Operator{}
+		op.Code = ops.OpName2Code("line")
+		a := &attr.Attribute{Type: attr.AttrTNumber, Number: pi.Items[0].LineNumBegin}
+		op.Attributes = append(op.Attributes, a)
+
+		if rp.StackPos >= 0 {
+			rp.Stack[rp.StackPos].ExecOps = append([]*ops.Operator{op}, rp.Stack[rp.StackPos].ExecOps...)
+		} else {
+			rp.Operators = append([]*ops.Operator{op}, rp.Operators...)
+		}
+
+		op_d := &ops.Operator{}
+		op_d.Code = ops.OpName2Code("debug")
+		a1_d, err := ParseArg("text")
+		if err != nil {
+			return "", err
+		}
+		op_d.Attributes = append(op_d.Attributes, a1_d)
+		a2_d, err := ParseArg(result)
+		if err != nil {
+			return "", err
+		}
+		op_d.Attributes = append(op_d.Attributes, a2_d)
+
+		if rp.StackPos >= 0 {
+			rp.Stack[rp.StackPos].ExecOps = append([]*ops.Operator{op_d}, rp.Stack[rp.StackPos].ExecOps...)
+		} else {
+			rp.Operators = append([]*ops.Operator{op_d}, rp.Operators...)
+		}
+
 		r := Frames{rp.Operators}
 		rp.Env.AddFrames(r)
 		env.Struct = rp

@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	//"github.com/wanderer69/FrL/public/script"
+
 	attr "github.com/wanderer69/tools/parser/attributes"
 	"github.com/wanderer69/tools/unique"
 
@@ -353,7 +354,7 @@ func (ie *InterpreterEnv) CallMethod(name string, vl []*Value, cf *ContextFunc) 
 }
 
 // транслирует исходный код в последовательность операторов
-func (ie *InterpreterEnv) TranslateText(name string, data string, debug int, o *print.Output) ([]*Value, error) {
+func (ie *InterpreterEnv) TranslateText(name string, data string, debug int, o *print.Output) (string, []*Value, error) {
 	env := parser.NewEnv()
 	env.Output = ie.Output
 
@@ -367,7 +368,7 @@ func (ie *InterpreterEnv) TranslateText(name string, data string, debug int, o *
 	env.Debug = debug
 	res, err := env.ParseString(data, o)
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
 	if ie.debug > 3 {
 		ie.Output.Print("ParseString: %v\r\n", res)
@@ -395,6 +396,20 @@ func (ie *InterpreterEnv) TranslateText(name string, data string, debug int, o *
 			ie.Output.Print("%v\r\n", s)
 		}
 	}
+	funcName := ""
+	if len(rEnv.Frames) > 0 {
+		funcName = "init_"
+		if len(rEnv.Package) > 0 {
+			funcName = "init_" + rEnv.Package
+		} else {
+			funcName = "init_" + name
+		}
+		for i := range rEnv.Frames {
+			r := fnc.Function{Name: funcName, NumArgs: 0, Operators: rEnv.Frames[i].Frames}
+			rEnv.AddFunction(r)
+		}
+	}
+
 	fvl := []*Value{}
 	for i := range rEnv.Functions {
 		rEnv.Functions[i].FileName = name
@@ -413,7 +428,7 @@ func (ie *InterpreterEnv) TranslateText(name string, data string, debug int, o *
 	for i := range rEnv.ExtFunctions {
 		ie.AddExternalFunction(rEnv.ExtFunctions[i])
 	}
-	return fvl, nil
+	return funcName, fvl, nil
 }
 
 // интерпретирует последовательность операторов функции

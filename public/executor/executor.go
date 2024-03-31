@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/wanderer69/FrL/public/entity"
 	frl "github.com/wanderer69/FrL/public/lib"
 	print "github.com/wanderer69/tools/parser/print"
 )
@@ -97,7 +98,7 @@ func (e *Executor) Exec(fileIn string, funcStartName string, args ...interface{}
 }
 
 func (e *Executor) ExecString(fileName string, data string, funcStartName string, args ...interface{}) error {
-	_, err := e.ie.TranslateText(fileName, data, e.debug, e.ie.OutputTranslate)
+	initFuncName, _, err := e.ie.TranslateText(fileName, data, e.debug, e.ie.OutputTranslate)
 	if err != nil {
 		return fmt.Errorf("translate error: %w", err)
 	}
@@ -105,6 +106,23 @@ func (e *Executor) ExecString(fileName string, data string, funcStartName string
 	ce, err := e.ie.CreateContextEnv()
 	if err != nil {
 		return fmt.Errorf("create context error %w", err)
+	}
+
+	// всегда вызываем функцию инициализации
+	if len(initFuncName) > 0 {
+		_, err = e.ie.InterpreterFunc(ce, initFuncName, []*frl.Value{})
+		if err != nil {
+			return fmt.Errorf("intrepreter function %v error %w", initFuncName, err)
+		}
+		for {
+			flag, err := e.ie.InterpreterFuncStep()
+			if err != nil {
+				return fmt.Errorf("interpreter %v function step %w", initFuncName, err)
+			}
+			if flag {
+				break
+			}
+		}
 	}
 
 	if len(funcStartName) == 0 {
@@ -117,12 +135,12 @@ func (e *Executor) ExecString(fileName string, data string, funcStartName string
 	}
 	_, err = e.ie.InterpreterFunc(ce, funcStartName, values)
 	if err != nil {
-		return fmt.Errorf("intrepreter function error %w", err)
+		return fmt.Errorf("intrepreter %v function error %w", funcStartName, err)
 	}
 	for {
 		flag, err := e.ie.InterpreterFuncStep()
 		if err != nil {
-			return fmt.Errorf("interpreter  function step %w", err)
+			return fmt.Errorf("interpreter %v function step %w", funcStartName, err)
 		}
 		if flag {
 			break
@@ -131,38 +149,27 @@ func (e *Executor) ExecString(fileName string, data string, funcStartName string
 	return nil
 }
 
-type SourceItem struct {
-	Name        string
-	SourceCode  string
-	Breakpoints []int
-}
-
-type Variable struct {
-	FuncName string
-	Name     string
-	Type     string
-	Value    string
-}
-
 func (e *Executor) ExecuteFuncWithManyFiles(
-	sourceItems []SourceItem,
-	callback func(string, int, [][]string, []*Variable),
+	sourceItems []entity.SourceItem,
+	callback func(string, int, [][]string, []*entity.Variable),
 	funcStartName string,
 	args ...interface{},
 ) error {
+	initFuncList := []string{}
 	for _, sourceItem := range sourceItems {
 		breakPoints := []*frl.BreakPoint{}
 		for _, breakpoint := range sourceItem.Breakpoints {
 			breakPoint := frl.BreakPoint{FileName: sourceItem.Name, LineNum: breakpoint}
 			breakPoints = append(breakPoints, &breakPoint)
 		}
-		_, err := e.ie.TranslateText(sourceItem.Name, sourceItem.SourceCode, e.debug, e.ie.OutputTranslate)
+		initFuncName, _, err := e.ie.TranslateText(sourceItem.Name, sourceItem.SourceCode, e.debug, e.ie.OutputTranslate)
 		if err != nil {
 			return fmt.Errorf("translate error: %w", err)
 		}
 		if len(breakPoints) > 0 {
 			e.ie.AddBreakPoints(breakPoints)
 		}
+		initFuncList = append(initFuncList, initFuncName)
 	}
 
 	ce, err := e.ie.CreateContextEnv()
@@ -170,6 +177,46 @@ func (e *Executor) ExecuteFuncWithManyFiles(
 		return fmt.Errorf("create context error %w", err)
 	}
 
+	for i := range initFuncList {
+		if len(initFuncList[i]) > 0 {
+			_, err = e.ie.InterpreterFunc(ce, initFuncList[i], []*frl.Value{})
+			if err != nil {
+				return fmt.Errorf("intrepreter function error %w", err)
+			}
+			for {
+				flag, err := e.ie.InterpreterFuncStep()
+				if err != nil {
+					return fmt.Errorf("interpreter  function step %w", err)
+				}
+				if flag {
+					break
+				}
+				bp := e.ie.GetCurrentBreakPoint()
+				if bp != nil {
+					cf := ce.GetCurrentFunc()
+					fn := cf.GetFunc()
+					fnName := fn.Name
+					data := [][]string{}
+					variables := []*entity.Variable{}
+					for k, v := range cf.GetVarDict() {
+						data = append(data, []string{fnName, k, fmt.Sprintf("%v", v.GetType()), v.String()})
+						variable := entity.Variable{
+							FuncName: fnName,
+							Name:     k,
+							Type:     v.GetType().String(),
+							Value:    v.String(),
+						}
+						variables = append(variables, &variable)
+					}
+
+					if callback != nil {
+						callback(bp.FileName, bp.LineNum, data, variables)
+					}
+					e.ie.ClearCurrentBreakPoint()
+				}
+			}
+		}
+	}
 	if len(funcStartName) == 0 {
 		return nil
 	}
@@ -195,10 +242,10 @@ func (e *Executor) ExecuteFuncWithManyFiles(
 			fn := cf.GetFunc()
 			fnName := fn.Name
 			data := [][]string{}
-			variables := []*Variable{}
+			variables := []*entity.Variable{}
 			for k, v := range cf.GetVarDict() {
 				data = append(data, []string{fnName, k, fmt.Sprintf("%v", v.GetType()), v.String()})
-				variable := Variable{
+				variable := entity.Variable{
 					FuncName: fnName,
 					Name:     k,
 					Type:     v.GetType().String(),
@@ -217,10 +264,10 @@ func (e *Executor) ExecuteFuncWithManyFiles(
 }
 
 func (e *Executor) TranslateManyFiles(
-	sourceItems []SourceItem,
+	sourceItems []entity.SourceItem,
 ) error {
 	for _, sourceItem := range sourceItems {
-		_, err := e.ie.TranslateText(sourceItem.Name, sourceItem.SourceCode, e.debug, e.ie.OutputTranslate)
+		_, _, err := e.ie.TranslateText(sourceItem.Name, sourceItem.SourceCode, e.debug, e.ie.OutputTranslate)
 		if err != nil {
 			return fmt.Errorf("translate error: %w", err)
 		}

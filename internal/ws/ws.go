@@ -8,6 +8,7 @@ import (
 
 	"github.com/gorilla/websocket"
 
+	"github.com/wanderer69/FrL/public/entity"
 	exec "github.com/wanderer69/FrL/public/executor"
 )
 
@@ -143,7 +144,7 @@ func (wsEnv *WSEnv) Listen(eb *exec.ExecutorBase, e *exec.Executor) {
 			mo.Result = "Ok"
 			mo.Answer = "answer test"
 
-			sourceItems := []exec.SourceItem{}
+			sourceItems := []entity.SourceItem{}
 			for i := range mi.Sources {
 				breakpoints := []int{}
 				for i := range mi.Breakpoints {
@@ -151,12 +152,12 @@ func (wsEnv *WSEnv) Listen(eb *exec.ExecutorBase, e *exec.Executor) {
 						breakpoints = append(breakpoints, mi.Breakpoints[i].Number)
 					}
 				}
-				sourceItems = append(sourceItems, exec.SourceItem{
+				sourceItems = append(sourceItems, entity.SourceItem{
 					Name:        mi.Sources[i].Name,
 					SourceCode:  mi.Sources[i].Source,
 					Breakpoints: breakpoints})
 			}
-			callback := func(name string, number int, data [][]string, variables []*exec.Variable) {
+			callback := func(name string, number int, data [][]string, variables []*entity.Variable) {
 				for {
 					var moCB MessageOut
 					moCB.Id = mi.Id
@@ -229,9 +230,9 @@ func (wsEnv *WSEnv) Listen(eb *exec.ExecutorBase, e *exec.Executor) {
 			mo.Result = "Ok"
 			mo.Answer = "answer test"
 
-			sourceItems := []exec.SourceItem{}
+			sourceItems := []entity.SourceItem{}
 			for i := range mi.Sources {
-				sourceItems = append(sourceItems, exec.SourceItem{
+				sourceItems = append(sourceItems, entity.SourceItem{
 					Name:       mi.Sources[i].Name,
 					SourceCode: mi.Sources[i].Source,
 				})

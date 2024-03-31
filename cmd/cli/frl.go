@@ -147,7 +147,7 @@ func main() {
 			return
 		}
 
-		_, err = ie.TranslateText(file_in, string(data), 0, ie.Output)
+		initFuncName, _, err := ie.TranslateText(file_in, string(data), 0, ie.Output)
 		if err != nil {
 			fmt.Print(err)
 			return
@@ -159,8 +159,24 @@ func main() {
 			return
 		}
 
+		_, err1 := ie.InterpreterFunc(ce, initFuncName, []*frl.Value{})
+		if err1 != nil {
+			fmt.Print(err1)
+			return
+		}
+		for {
+			flag, err1 := ie.InterpreterFuncStep( /*cf*/ )
+			if err1 != nil {
+				fmt.Print(err1)
+				return
+			}
+			if flag {
+				break
+			}
+		}
+
 		values := []*frl.Value{frl.CreateValue("1"), frl.CreateValue("2")}
-		_, err1 := ie.InterpreterFunc(ce, "пример1", values)
+		_, err1 = ie.InterpreterFunc(ce, "пример1", values)
 		if err1 != nil {
 			fmt.Print(err1)
 			return
