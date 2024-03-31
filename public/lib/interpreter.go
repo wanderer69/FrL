@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/wanderer69/FrL/public/script"
+	//"github.com/wanderer69/FrL/public/script"
 	attr "github.com/wanderer69/tools/parser/attributes"
 	"github.com/wanderer69/tools/unique"
 
 	fnc "github.com/wanderer69/FrL/public/functions"
 	ops "github.com/wanderer69/FrL/public/operators"
+	"github.com/wanderer69/FrL/public/script"
 	ns "github.com/wanderer69/tools/parser/new_strings"
 	"github.com/wanderer69/tools/parser/parser"
 	print "github.com/wanderer69/tools/parser/print"
@@ -33,11 +34,14 @@ type InterpreterEnv struct {
 	methodsDict    map[string]*fnc.Method
 	contextEnv     []*ContextEnv
 	contextEnvDict map[string]*ContextEnv
-	intFuncs       map[string]func(ie *InterpreterEnv, state int, if_ *InternalFunction) (*InternalFunction, bool, error)
-	intMethods     map[string]func(ie *InterpreterEnv, state int, if_ *InternalMethod) (*InternalMethod, bool, error)
+	intFuncs       map[string]func(ie *InterpreterEnv, state int, if_ *InternalFunction, args []*Value) (*InternalFunction, []*Value, bool, error)
+	intMethods     map[string]func(ie *InterpreterEnv, state int, if_ *InternalMethod, args []*Value) (*InternalMethod, []*Value, bool, error)
+	extFuncs       map[string]func(ie *InterpreterEnv, state int, if_ *ExternalFunction, args []*Value) (*ExternalFunction, []*Value, bool, error)
 
 	breakPointsList   map[string]*BreakPoint
 	currentBreakPoint *BreakPoint
+
+	ExternalFunctions map[string]func(args []*Value) ([]*Value, bool, error)
 }
 
 func (ie *InterpreterEnv) AddBreakPoints(breakPoints []*BreakPoint) {
@@ -151,11 +155,12 @@ func (cf *ContextFunc) PrintContextFunc(o *print.Output) {
 func NewInterpreterEnv() *InterpreterEnv {
 	ie := InterpreterEnv{}
 	ie.methodsDict = make(map[string]*fnc.Method)
-	ie.intFuncs = make(map[string]func(ie *InterpreterEnv, state int, if_ *InternalFunction) (*InternalFunction, bool, error))
+	ie.intFuncs = make(map[string]func(ie *InterpreterEnv, state int, if_ *InternalFunction, args []*Value) (*InternalFunction, []*Value, bool, error))
 	ie.functionsDict = make(map[string]*fnc.Function)
-	ie.intMethods = make(map[string]func(ie *InterpreterEnv, state int, if_ *InternalMethod) (*InternalMethod, bool, error))
+	ie.intMethods = make(map[string]func(ie *InterpreterEnv, state int, if_ *InternalMethod, args []*Value) (*InternalMethod, []*Value, bool, error))
 	ie.contextEnvDict = make(map[string]*ContextEnv)
 	ie.breakPointsList = make(map[string]*BreakPoint)
+	ie.extFuncs = make(map[string]func(ie *InterpreterEnv, state int, if_ *ExternalFunction, args []*Value) (*ExternalFunction, []*Value, bool, error))
 
 	return &ie
 }
@@ -227,9 +232,57 @@ func (ie *InterpreterEnv) AddFunction(function *fnc.Function) error {
 	return nil
 }
 
-func (ie *InterpreterEnv) BindFunction(fn func(ie *InterpreterEnv, state int, if_ *InternalFunction) (*InternalFunction, bool, error)) error {
+func (ie *InterpreterEnv) AddExternalFunction(extFunc *fnc.ExternalFunction) error {
+	_, ok := ie.extFuncs[extFunc.Name]
+	if ok {
+		return fmt.Errorf("method %v found", extFunc.Name)
+	}
+	external := func(ie *InterpreterEnv, state int, if_ *ExternalFunction, args []*Value) (*ExternalFunction, []*Value, bool, error) {
+		// принцип аналогичен команде однако есть отличие так как вычисление идет в две итерации
+		// 0. регистрация
+		// 1. оценка и связывание аргументов
+		// 2. собственно вычисление
+		switch state {
+		case 0:
+			if_n := &ExternalFunction{Name: extFunc.Alias, NumArgs: extFunc.NumArgs, Func: extFunc.Func} // имя
+			return if_n, nil, false, nil
+		case 1:
+			if_n := &ExternalFunction{Name: extFunc.Alias, NumArgs: extFunc.NumArgs, Func: extFunc.Func} // имя
+			return if_n, nil, false, nil
+		case 2:
+			if if_ != nil {
+				result := []*Value{}
+				if if_.Func != nil {
+					argsInt := []interface{}{}
+					resultInt, flag, err := if_.Func(argsInt)
+					if err != nil {
+						return nil, nil, false, err
+					}
+					for i := range resultInt {
+						result = append(result, resultInt[i].(*Value))
+					}
+					return if_, result, flag, nil
+				}
+				return if_, nil, false, nil
+			}
+		}
+		return nil, nil, false, nil
+	}
+	ie.extFuncs[extFunc.Name] = external
+
+	return nil
+}
+
+func (ie *InterpreterEnv) BindFunction(
+	fn func(
+		ie *InterpreterEnv,
+		state int,
+		if_ *InternalFunction,
+		args []*Value,
+	) (*InternalFunction, []*Value, bool, error),
+) error {
 	// спрашиваем имя
-	if_, _, _ := fn(ie, 0, nil)
+	if_, _, _, _ := fn(ie, 0, nil, nil)
 	if if_ != nil {
 		ie.intFuncs[if_.Name] = fn
 		return nil
@@ -238,9 +291,9 @@ func (ie *InterpreterEnv) BindFunction(fn func(ie *InterpreterEnv, state int, if
 	return fmt.Errorf("error bind function")
 }
 
-func (ie *InterpreterEnv) BindMethod(fn func(ie *InterpreterEnv, state int, if_ *InternalMethod) (*InternalMethod, bool, error)) error {
+func (ie *InterpreterEnv) BindMethod(fn func(ie *InterpreterEnv, state int, if_ *InternalMethod, args []*Value) (*InternalMethod, []*Value, bool, error)) error {
 	// спрашиваем имя
-	if_, _, _ := fn(ie, 0, nil)
+	if_, _, _, _ := fn(ie, 0, nil, nil)
 	if if_ != nil {
 		ie.intMethods[if_.Name] = fn
 		return nil
@@ -259,12 +312,12 @@ func (ie *InterpreterEnv) CallFunction(name string, vl []*Value /*, cfo *Context
 	fn, ok := ie.intFuncs[name]
 	if ok {
 		// спрашиваем число аргументов
-		if_, _, _ := fn(ie, 1, nil)
+		if_, _, _, _ := fn(ie, 1, nil, nil)
 		if if_ != nil {
 			if_.Args = vl
-			if_, ok, err := fn(ie, 2, if_)
+			if_, result, ok, err := fn(ie, 2, if_, vl)
 			if if_ != nil {
-				return true, if_.Return, ok, err
+				return true, result, ok, err
 			} else {
 				return true, nil, ok, err
 			}
@@ -290,10 +343,10 @@ func (ie *InterpreterEnv) CallFunction(name string, vl []*Value /*, cfo *Context
 func (ie *InterpreterEnv) CallMethod(name string, vl []*Value, cf *ContextFunc) (bool, error) {
 	fn := ie.intMethods[name]
 	// спрашиваем число аргументов
-	if_, _, _ := fn(ie, 1, nil)
+	if_, _, _, _ := fn(ie, 1, nil, nil)
 	if if_ != nil {
 		if_.Args = vl
-		_, ok, err := fn(ie, 2, if_)
+		_, _, ok, err := fn(ie, 2, if_, vl)
 		return ok, err
 	}
 	return false, nil
@@ -357,6 +410,9 @@ func (ie *InterpreterEnv) TranslateText(name string, data string, debug int, o *
 		ie.AddMethod(rEnv.Methods[i])
 	}
 
+	for i := range rEnv.ExtFunctions {
+		ie.AddExternalFunction(rEnv.ExtFunctions[i])
+	}
 	return fvl, nil
 }
 
@@ -482,12 +538,12 @@ func (ie *InterpreterEnv) InterpreterFuncStep( /* cf *ContextFunc */ ) (bool, er
 
 	createQria := func(al []*attr.Attribute) ([]QueryRelationItem, bool, error) {
 		qria := []QueryRelationItem{}
-		for i := range op.Attributes {
+		for i := range al {
 			if false {
-				s := op.Attributes[i].Attribute2String()
+				s := al[i].Attribute2String()
 				ie.Output.Print("a: %v\r\n", s)
 			}
-			t, name, array := attr.GetAttribute(op.Attributes[i])
+			t, name, array := attr.GetAttribute(al[i])
 			switch t {
 			case attr.AttrTConst:
 				ie.Output.Print("const %v\r\n", name)
@@ -707,12 +763,12 @@ func (ie *InterpreterEnv) InterpreterFuncStep( /* cf *ContextFunc */ ) (bool, er
 	}
 	createAria := func(al []*attr.Attribute) ([]AddRelationItem, bool, error) {
 		aria := []AddRelationItem{}
-		for i := range op.Attributes {
+		for i := range al {
 			if false {
-				s := op.Attributes[i].Attribute2String()
+				s := al[i].Attribute2String()
 				ie.Output.Print("a: %v\r\n", s)
 			}
-			t, name, array := attr.GetAttribute(op.Attributes[i])
+			t, name, array := attr.GetAttribute(al[i])
 			switch t {
 			case attr.AttrTConst:
 				ie.Output.Print("const %v\r\n", name)

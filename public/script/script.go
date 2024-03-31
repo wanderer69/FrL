@@ -104,10 +104,12 @@ func PrintFrames(r *Frames) string {
 }
 
 type Environment struct {
-	Relations []*Relations
-	Frames    []*Frames
-	Functions []*fnc.Function
-	Methods   []*fnc.Method
+	Relations    []*Relations
+	Frames       []*Frames
+	Functions    []*fnc.Function
+	Methods      []*fnc.Method
+	ExtFunctions []*fnc.ExternalFunction
+	Package      string
 }
 
 func NewEnvironment() *Environment {
@@ -129,6 +131,10 @@ func (env *Environment) AddMethod(r fnc.Method) {
 
 func (env *Environment) AddFunction(r fnc.Function) {
 	env.Functions = append(env.Functions, &r)
+}
+
+func (env *Environment) AddExternalFunction(r fnc.ExternalFunction) {
+	env.ExtFunctions = append(env.ExtFunctions, &r)
 }
 
 func ParseArg(val string) (*attr.Attribute, error) {
@@ -229,18 +235,18 @@ func fFunction(pi parser.ParseItem, env *parser.Env, level int) (string, error) 
 
 		rp := env.Struct.(FrameParser)
 
-		op := ops.Operator{}
+		op := &ops.Operator{}
 		op.Code = ops.OpName2Code("line")
 		a := &attr.Attribute{Type: attr.AttrTNumber, Number: pi.Items[0].LineNumBegin}
 		op.Attributes = append(op.Attributes, a)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append([]*ops.Operator{&op}, rp.Stack[rp.StackPos].ExecOps...)
+			rp.Stack[rp.StackPos].ExecOps = append([]*ops.Operator{op}, rp.Stack[rp.StackPos].ExecOps...)
 		} else {
-			rp.Operators = append([]*ops.Operator{&op}, rp.Operators...)
+			rp.Operators = append([]*ops.Operator{op}, rp.Operators...)
 		}
 
-		op = ops.Operator{}
+		op = &ops.Operator{}
 		op.Code = ops.OpName2Code("args")
 
 		b := strings.Trim(args_list, " ")
@@ -257,12 +263,12 @@ func fFunction(pi parser.ParseItem, env *parser.Env, level int) (string, error) 
 		na := len(args)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append([]*ops.Operator{&op}, rp.Stack[rp.StackPos].ExecOps...)
+			rp.Stack[rp.StackPos].ExecOps = append([]*ops.Operator{op}, rp.Stack[rp.StackPos].ExecOps...)
 		} else {
-			rp.Operators = append([]*ops.Operator{&op}, rp.Operators...)
+			rp.Operators = append([]*ops.Operator{op}, rp.Operators...)
 		}
 
-		op_d := ops.Operator{}
+		op_d := &ops.Operator{}
 		op_d.Code = ops.OpName2Code("debug")
 		a1_d, err := ParseArg("text")
 		if err != nil {
@@ -276,9 +282,9 @@ func fFunction(pi parser.ParseItem, env *parser.Env, level int) (string, error) 
 		op_d.Attributes = append(op_d.Attributes, a2_d)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append([]*ops.Operator{&op_d}, rp.Stack[rp.StackPos].ExecOps...)
+			rp.Stack[rp.StackPos].ExecOps = append([]*ops.Operator{op_d}, rp.Stack[rp.StackPos].ExecOps...)
 		} else {
-			rp.Operators = append([]*ops.Operator{&op_d}, rp.Operators...)
+			rp.Operators = append([]*ops.Operator{op_d}, rp.Operators...)
 		}
 
 		r := fnc.Function{Name: function_name, NumArgs: na, Operators: rp.Operators}
@@ -317,19 +323,19 @@ func fMethod(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 
 		rp := env.Struct.(FrameParser)
 
-		op := ops.Operator{}
+		op := &ops.Operator{}
 		op.Code = ops.OpName2Code("line")
 		a := &attr.Attribute{Type: attr.AttrTNumber, Number: pi.Items[0].LineNumBegin}
 		//env.Output.Print("pi.Items[0].LineNumBegin %v", pi.Items[0].LineNumBegin)
 		op.Attributes = append(op.Attributes, a)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append([]*ops.Operator{&op}, rp.Stack[rp.StackPos].ExecOps...)
+			rp.Stack[rp.StackPos].ExecOps = append([]*ops.Operator{op}, rp.Stack[rp.StackPos].ExecOps...)
 		} else {
-			rp.Operators = append([]*ops.Operator{&op}, rp.Operators...)
+			rp.Operators = append([]*ops.Operator{op}, rp.Operators...)
 		}
 
-		op = ops.Operator{}
+		op = &ops.Operator{}
 		op.Code = ops.OpName2Code("args")
 
 		b := strings.Trim(args_list, " ")
@@ -345,12 +351,12 @@ func fMethod(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 		}
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append([]*ops.Operator{&op}, rp.Stack[rp.StackPos].ExecOps...)
+			rp.Stack[rp.StackPos].ExecOps = append([]*ops.Operator{op}, rp.Stack[rp.StackPos].ExecOps...)
 		} else {
-			rp.Operators = append([]*ops.Operator{&op}, rp.Operators...)
+			rp.Operators = append([]*ops.Operator{op}, rp.Operators...)
 		}
 
-		op_d := ops.Operator{}
+		op_d := &ops.Operator{}
 		op_d.Code = ops.OpName2Code("debug")
 		a1_d, err := ParseArg("text")
 		if err != nil {
@@ -364,9 +370,9 @@ func fMethod(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 		op_d.Attributes = append(op_d.Attributes, a2_d)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append([]*ops.Operator{&op_d}, rp.Stack[rp.StackPos].ExecOps...)
+			rp.Stack[rp.StackPos].ExecOps = append([]*ops.Operator{op_d}, rp.Stack[rp.StackPos].ExecOps...)
 		} else {
-			rp.Operators = append([]*ops.Operator{&op_d}, rp.Operators...)
+			rp.Operators = append([]*ops.Operator{op_d}, rp.Operators...)
 		}
 
 		r := fnc.Method{Name: method_name, Operators: rp.Operators}
@@ -387,16 +393,16 @@ func fReturn(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 
 		rp := env.Struct.(FrameParser)
 
-		op_l := ops.Operator{}
+		op_l := &ops.Operator{}
 		op_l.Code = ops.OpName2Code("line")
 		a_l := &attr.Attribute{Type: attr.AttrTNumber, Number: pi.Items[0].LineNumBegin}
 		//env.Output.Print("pi.Items[0].LineNumBegin %v", pi.Items[0].LineNumBegin)
 		op_l.Attributes = append(op_l.Attributes, a_l)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op_l)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op_l)
 		} else {
-			rp.Operators = append(rp.Operators, &op_l)
+			rp.Operators = append(rp.Operators, op_l)
 		}
 
 		// вначале надо вычислить аргументы
@@ -410,7 +416,7 @@ func fReturn(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 				if err != nil {
 					return "", err
 				}
-				op := ops.Operator{}
+				op := &ops.Operator{}
 
 				t, _, array := attr.GetAttribute(a)
 				switch t {
@@ -431,22 +437,22 @@ func fReturn(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 				}
 				ll = ll + 1
 				if rp.StackPos >= 0 {
-					rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op)
+					rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op)
 				} else {
-					rp.Operators = append(rp.Operators, &op)
+					rp.Operators = append(rp.Operators, op)
 				}
 			}
 		}
 
-		op := ops.Operator{}
+		op := &ops.Operator{}
 		op.Code = ops.OpName2Code("return")
 		a1 := attr.NewAttribute(attr.AttrTNumber, fmt.Sprintf("%v", ll), nil)
 		op.Attributes = append(op.Attributes, a1)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op)
 		} else {
-			rp.Operators = append(rp.Operators, &op)
+			rp.Operators = append(rp.Operators, op)
 		}
 
 		env.Struct = rp
@@ -466,19 +472,19 @@ func fCallFunction(pi parser.ParseItem, env *parser.Env, level int) (string, err
 
 		rp := env.Struct.(FrameParser)
 
-		op_l := ops.Operator{}
+		op_l := &ops.Operator{}
 		op_l.Code = ops.OpName2Code("line")
 		a_l := &attr.Attribute{Type: attr.AttrTNumber, Number: pi.Items[0].LineNumBegin}
 		//env.Output.Print("pi.Items[0].LineNumBegin %v", pi.Items[0].LineNumBegin)
 		op_l.Attributes = append(op_l.Attributes, a_l)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op_l)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op_l)
 		} else {
-			rp.Operators = append(rp.Operators, &op_l)
+			rp.Operators = append(rp.Operators, op_l)
 		}
 
-		op_d := ops.Operator{}
+		op_d := &ops.Operator{}
 		op_d.Code = ops.OpName2Code("debug")
 		a1_d, err := ParseArg("text")
 		if err != nil {
@@ -492,15 +498,15 @@ func fCallFunction(pi parser.ParseItem, env *parser.Env, level int) (string, err
 		op_d.Attributes = append(op_d.Attributes, a2_d)
 		/*
 			if rp.StackPos >= 0 {
-				rp.Stack[rp.StackPos].ExecOps = append([]*ops.Operator{&op_d}, rp.Stack[rp.StackPos].ExecOps...)
+				rp.Stack[rp.StackPos].ExecOps = append([]*ops.Operator{op_d}, rp.Stack[rp.StackPos].ExecOps...)
 			} else {
-				rp.Operators = append([]*ops.Operator{&op_d}, rp.Operators...)
+				rp.Operators = append([]*ops.Operator{op_d}, rp.Operators...)
 			}
 		*/
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op_d)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op_d)
 		} else {
-			rp.Operators = append(rp.Operators, &op_d)
+			rp.Operators = append(rp.Operators, op_d)
 		}
 
 		// вначале надо вычислить аргументы
@@ -514,7 +520,7 @@ func fCallFunction(pi parser.ParseItem, env *parser.Env, level int) (string, err
 				if err != nil {
 					return "", err
 				}
-				op := ops.Operator{}
+				op := &ops.Operator{}
 
 				t, _, array := attr.GetAttribute(a)
 				switch t {
@@ -535,14 +541,14 @@ func fCallFunction(pi parser.ParseItem, env *parser.Env, level int) (string, err
 				}
 				ll = ll + 1
 				if rp.StackPos >= 0 {
-					rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op)
+					rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op)
 				} else {
-					rp.Operators = append(rp.Operators, &op)
+					rp.Operators = append(rp.Operators, op)
 				}
 			}
 		}
 
-		op := ops.Operator{}
+		op := &ops.Operator{}
 		op.Code = ops.OpName2Code("call_function")
 
 		b0 := strings.Trim(function_name, " ")
@@ -555,9 +561,9 @@ func fCallFunction(pi parser.ParseItem, env *parser.Env, level int) (string, err
 		op.Attributes = append(op.Attributes, a1)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op)
 		} else {
-			rp.Operators = append(rp.Operators, &op)
+			rp.Operators = append(rp.Operators, op)
 		}
 
 		env.Struct = rp
@@ -581,16 +587,16 @@ func fCallMethod(pi parser.ParseItem, env *parser.Env, level int) (string, error
 
 		rp := env.Struct.(FrameParser)
 
-		op := ops.Operator{}
+		op := &ops.Operator{}
 		op.Code = ops.OpName2Code("line")
 		a := &attr.Attribute{Type: attr.AttrTNumber, Number: pi.Items[0].LineNumBegin}
 		//env.Output.Print("pi.Items[0].LineNumBegin %v", pi.Items[0].LineNumBegin)
 		op.Attributes = append(op.Attributes, a)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op)
 		} else {
-			rp.Operators = append(rp.Operators, &op)
+			rp.Operators = append(rp.Operators, op)
 		}
 
 		// разделяем объект и метод
@@ -652,7 +658,7 @@ func fCallMethod(pi parser.ParseItem, env *parser.Env, level int) (string, error
 			}
 		}
 
-		op_d := ops.Operator{}
+		op_d := &ops.Operator{}
 		op_d.Code = ops.OpName2Code("debug")
 		a1_d, err := ParseArg("text")
 		if err != nil {
@@ -666,9 +672,9 @@ func fCallMethod(pi parser.ParseItem, env *parser.Env, level int) (string, error
 		op_d.Attributes = append(op_d.Attributes, a2_d)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append([]*ops.Operator{&op_d}, rp.Stack[rp.StackPos].ExecOps...)
+			rp.Stack[rp.StackPos].ExecOps = append([]*ops.Operator{op_d}, rp.Stack[rp.StackPos].ExecOps...)
 		} else {
-			rp.Operators = append([]*ops.Operator{&op_d}, rp.Operators...)
+			rp.Operators = append([]*ops.Operator{op_d}, rp.Operators...)
 		}
 		// вначале надо вычислить аргументы
 		b1 := strings.Trim(args_list, " ")
@@ -681,7 +687,7 @@ func fCallMethod(pi parser.ParseItem, env *parser.Env, level int) (string, error
 				if err != nil {
 					return "", err
 				}
-				op := ops.Operator{}
+				op := &ops.Operator{}
 
 				t, _, array := attr.GetAttribute(a)
 				switch t {
@@ -702,14 +708,14 @@ func fCallMethod(pi parser.ParseItem, env *parser.Env, level int) (string, error
 				}
 				ll = ll + 1
 				if rp.StackPos >= 0 {
-					rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op)
+					rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op)
 				} else {
-					rp.Operators = append(rp.Operators, &op)
+					rp.Operators = append(rp.Operators, op)
 				}
 			}
 		}
 
-		op = ops.Operator{}
+		op = &ops.Operator{}
 		op.Code = ops.OpName2Code("call_method")
 
 		op.Attributes = append(op.Attributes, obj)
@@ -718,9 +724,9 @@ func fCallMethod(pi parser.ParseItem, env *parser.Env, level int) (string, error
 		op.Attributes = append(op.Attributes, a1)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op)
 		} else {
-			rp.Operators = append(rp.Operators, &op)
+			rp.Operators = append(rp.Operators, op)
 		}
 
 		env.Struct = rp
@@ -741,31 +747,31 @@ func fCallFunctionWithAssignment(pi parser.ParseItem, env *parser.Env, level int
 
 		rp := env.Struct.(FrameParser)
 		/*
-			op := ops.Operator{}
+			op := &ops.Operator{}
 			op.Code = ops.OpName2Code("line")
 			a := &attr.Attribute{Type: attr.AttrTNumber, Number: pi.Items[0].LineNumBegin}
 			env.Output.Print("pi.Items[0].LineNumBegin %v", pi.Items[0].LineNumBegin)
 			op.Attributes = append(op.Attributes, a)
 
 			if rp.StackPos >= 0 {
-				rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op)
+				rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op)
 			} else {
-				rp.Operators = append(rp.Operators, &op)
+				rp.Operators = append(rp.Operators, op)
 			}
 		*/
-		op_l := ops.Operator{}
+		op_l := &ops.Operator{}
 		op_l.Code = ops.OpName2Code("line")
 		a_l := &attr.Attribute{Type: attr.AttrTNumber, Number: pi.Items[0].LineNumBegin}
 		//env.Output.Print("pi.Items[0].LineNumBegin %v", pi.Items[0].LineNumBegin)
 		op_l.Attributes = append(op_l.Attributes, a_l)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op_l)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op_l)
 		} else {
-			rp.Operators = append(rp.Operators, &op_l)
+			rp.Operators = append(rp.Operators, op_l)
 		}
 
-		op_d := ops.Operator{}
+		op_d := &ops.Operator{}
 		op_d.Code = ops.OpName2Code("debug")
 		a1_d, err := ParseArg("text")
 		if err != nil {
@@ -779,15 +785,15 @@ func fCallFunctionWithAssignment(pi parser.ParseItem, env *parser.Env, level int
 		op_d.Attributes = append(op_d.Attributes, a2_d)
 		/*
 			if rp.StackPos >= 0 {
-				rp.Stack[rp.StackPos].ExecOps = append([]*ops.Operator{&op_d}, rp.Stack[rp.StackPos].ExecOps...)
+				rp.Stack[rp.StackPos].ExecOps = append([]*ops.Operator{op_d}, rp.Stack[rp.StackPos].ExecOps...)
 			} else {
-				rp.Operators = append([]*ops.Operator{&op_d}, rp.Operators...)
+				rp.Operators = append([]*ops.Operator{op_d}, rp.Operators...)
 			}
 		*/
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op_d)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op_d)
 		} else {
-			rp.Operators = append(rp.Operators, &op_d)
+			rp.Operators = append(rp.Operators, op_d)
 		}
 
 		// вначале надо вычислить аргументы
@@ -801,7 +807,7 @@ func fCallFunctionWithAssignment(pi parser.ParseItem, env *parser.Env, level int
 				if err != nil {
 					return "", err
 				}
-				op := ops.Operator{}
+				op := &ops.Operator{}
 
 				t, _, array := attr.GetAttribute(a)
 				switch t {
@@ -822,14 +828,14 @@ func fCallFunctionWithAssignment(pi parser.ParseItem, env *parser.Env, level int
 				}
 				ll = ll + 1
 				if rp.StackPos >= 0 {
-					rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op)
+					rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op)
 				} else {
-					rp.Operators = append(rp.Operators, &op)
+					rp.Operators = append(rp.Operators, op)
 				}
 			}
 		}
 
-		op := ops.Operator{}
+		op := &ops.Operator{}
 		op.Code = ops.OpName2Code("call_function")
 
 		b0 := strings.Trim(function_name, " ")
@@ -842,12 +848,12 @@ func fCallFunctionWithAssignment(pi parser.ParseItem, env *parser.Env, level int
 		op.Attributes = append(op.Attributes, a1)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op)
 		} else {
-			rp.Operators = append(rp.Operators, &op)
+			rp.Operators = append(rp.Operators, op)
 		}
 
-		op12 := ops.Operator{}
+		op12 := &ops.Operator{}
 		op12.Code = ops.OpName2Code("set")
 		// переменная итератора
 		a, err = ParseArg(var_name)
@@ -857,9 +863,9 @@ func fCallFunctionWithAssignment(pi parser.ParseItem, env *parser.Env, level int
 		op12.Attributes = append(op12.Attributes, a)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op12)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op12)
 		} else {
-			rp.Operators = append(rp.Operators, &op12)
+			rp.Operators = append(rp.Operators, op12)
 		}
 
 		env.Struct = rp
@@ -883,28 +889,28 @@ func fCallMethodWithAssignment(pi parser.ParseItem, env *parser.Env, level int) 
 
 		rp := env.Struct.(FrameParser)
 		/*
-			op := ops.Operator{}
+			op := &ops.Operator{}
 			op.Code = ops.OpName2Code("line")
 			a := &attr.Attribute{Type: attr.AttrTNumber, Number: pi.Items[0].LineNumBegin}
 			env.Output.Print("pi.Items[0].LineNumBegin %v", pi.Items[0].LineNumBegin)
 			op.Attributes = append(op.Attributes, a)
 
 			if rp.StackPos >= 0 {
-				rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op)
+				rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op)
 			} else {
-				rp.Operators = append(rp.Operators, &op)
+				rp.Operators = append(rp.Operators, op)
 			}
 		*/
-		op_l := ops.Operator{}
+		op_l := &ops.Operator{}
 		op_l.Code = ops.OpName2Code("line")
 		a_l := &attr.Attribute{Type: attr.AttrTNumber, Number: pi.Items[0].LineNumBegin}
 		//env.Output.Print("pi.Items[0].LineNumBegin %v", pi.Items[0].LineNumBegin)
 		op_l.Attributes = append(op_l.Attributes, a_l)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op_l)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op_l)
 		} else {
-			rp.Operators = append(rp.Operators, &op_l)
+			rp.Operators = append(rp.Operators, op_l)
 		}
 
 		// разделяем объект и метод
@@ -966,7 +972,7 @@ func fCallMethodWithAssignment(pi parser.ParseItem, env *parser.Env, level int) 
 			}
 		}
 
-		op_d := ops.Operator{}
+		op_d := &ops.Operator{}
 		op_d.Code = ops.OpName2Code("debug")
 		a1_d, err := ParseArg("text")
 		if err != nil {
@@ -980,9 +986,9 @@ func fCallMethodWithAssignment(pi parser.ParseItem, env *parser.Env, level int) 
 		op_d.Attributes = append(op_d.Attributes, a2_d)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append([]*ops.Operator{&op_d}, rp.Stack[rp.StackPos].ExecOps...)
+			rp.Stack[rp.StackPos].ExecOps = append([]*ops.Operator{op_d}, rp.Stack[rp.StackPos].ExecOps...)
 		} else {
-			rp.Operators = append([]*ops.Operator{&op_d}, rp.Operators...)
+			rp.Operators = append([]*ops.Operator{op_d}, rp.Operators...)
 		}
 		// вначале надо вычислить аргументы
 		b1 := strings.Trim(args_list, " ")
@@ -995,7 +1001,7 @@ func fCallMethodWithAssignment(pi parser.ParseItem, env *parser.Env, level int) 
 				if err != nil {
 					return "", err
 				}
-				op := ops.Operator{}
+				op := &ops.Operator{}
 
 				t, _, array := attr.GetAttribute(a)
 				switch t {
@@ -1016,14 +1022,14 @@ func fCallMethodWithAssignment(pi parser.ParseItem, env *parser.Env, level int) 
 				}
 				ll = ll + 1
 				if rp.StackPos >= 0 {
-					rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op)
+					rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op)
 				} else {
-					rp.Operators = append(rp.Operators, &op)
+					rp.Operators = append(rp.Operators, op)
 				}
 			}
 		}
 
-		op := ops.Operator{}
+		op := &ops.Operator{}
 		op.Code = ops.OpName2Code("call_method")
 
 		op.Attributes = append(op.Attributes, obj)
@@ -1032,9 +1038,9 @@ func fCallMethodWithAssignment(pi parser.ParseItem, env *parser.Env, level int) 
 		op.Attributes = append(op.Attributes, a1)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op)
 		} else {
-			rp.Operators = append(rp.Operators, &op)
+			rp.Operators = append(rp.Operators, op)
 		}
 
 		env.Struct = rp
@@ -1055,31 +1061,31 @@ func fCallFunctionWithAssignmentMany(pi parser.ParseItem, env *parser.Env, level
 
 		rp := env.Struct.(FrameParser)
 		/*
-			op := ops.Operator{}
+			op := &ops.Operator{}
 			op.Code = ops.OpName2Code("line")
 			a := &attr.Attribute{Type: attr.AttrTNumber, Number: pi.Items[0].LineNumBegin}
 			env.Output.Print("pi.Items[0].LineNumBegin %v", pi.Items[0].LineNumBegin)
 			op.Attributes = append(op.Attributes, a)
 
 			if rp.StackPos >= 0 {
-				rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op)
+				rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op)
 			} else {
-				rp.Operators = append(rp.Operators, &op)
+				rp.Operators = append(rp.Operators, op)
 			}
 		*/
-		op_l := ops.Operator{}
+		op_l := &ops.Operator{}
 		op_l.Code = ops.OpName2Code("line")
 		a_l := &attr.Attribute{Type: attr.AttrTNumber, Number: pi.Items[0].LineNumBegin}
 		//env.Output.Print("pi.Items[0].LineNumBegin %v", pi.Items[0].LineNumBegin)
 		op_l.Attributes = append(op_l.Attributes, a_l)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op_l)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op_l)
 		} else {
-			rp.Operators = append(rp.Operators, &op_l)
+			rp.Operators = append(rp.Operators, op_l)
 		}
 
-		op_d := ops.Operator{}
+		op_d := &ops.Operator{}
 		op_d.Code = ops.OpName2Code("debug")
 		a1_d, err := ParseArg("text")
 		if err != nil {
@@ -1093,9 +1099,9 @@ func fCallFunctionWithAssignmentMany(pi parser.ParseItem, env *parser.Env, level
 		op_d.Attributes = append(op_d.Attributes, a2_d)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append([]*ops.Operator{&op_d}, rp.Stack[rp.StackPos].ExecOps...)
+			rp.Stack[rp.StackPos].ExecOps = append([]*ops.Operator{op_d}, rp.Stack[rp.StackPos].ExecOps...)
 		} else {
-			rp.Operators = append([]*ops.Operator{&op_d}, rp.Operators...)
+			rp.Operators = append([]*ops.Operator{op_d}, rp.Operators...)
 		}
 		// вначале надо вычислить аргументы
 		b1 := strings.Trim(args_list, " ")
@@ -1108,7 +1114,7 @@ func fCallFunctionWithAssignmentMany(pi parser.ParseItem, env *parser.Env, level
 				if err != nil {
 					return "", err
 				}
-				op := ops.Operator{}
+				op := &ops.Operator{}
 
 				t, _, array := attr.GetAttribute(a)
 				switch t {
@@ -1129,14 +1135,14 @@ func fCallFunctionWithAssignmentMany(pi parser.ParseItem, env *parser.Env, level
 				}
 				ll = ll + 1
 				if rp.StackPos >= 0 {
-					rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op)
+					rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op)
 				} else {
-					rp.Operators = append(rp.Operators, &op)
+					rp.Operators = append(rp.Operators, op)
 				}
 			}
 		}
 
-		op := ops.Operator{}
+		op := &ops.Operator{}
 		op.Code = ops.OpName2Code("call_function")
 
 		b0 := strings.Trim(function_name, " ")
@@ -1149,9 +1155,9 @@ func fCallFunctionWithAssignmentMany(pi parser.ParseItem, env *parser.Env, level
 		op.Attributes = append(op.Attributes, a1)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op)
 		} else {
-			rp.Operators = append(rp.Operators, &op)
+			rp.Operators = append(rp.Operators, op)
 		}
 
 		// вначале надо вычислить аргументы
@@ -1165,7 +1171,7 @@ func fCallFunctionWithAssignmentMany(pi parser.ParseItem, env *parser.Env, level
 				if err != nil {
 					return "", err
 				}
-				op := ops.Operator{}
+				op := &ops.Operator{}
 
 				t, _, array := attr.GetAttribute(a)
 				switch t {
@@ -1186,9 +1192,9 @@ func fCallFunctionWithAssignmentMany(pi parser.ParseItem, env *parser.Env, level
 				}
 				ll = ll + 1
 				if rp.StackPos >= 0 {
-					rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op)
+					rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op)
 				} else {
-					rp.Operators = append(rp.Operators, &op)
+					rp.Operators = append(rp.Operators, op)
 				}
 			}
 		}
@@ -1227,31 +1233,31 @@ func fIf(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 
 		rp := env.Struct.(FrameParser)
 		/*
-			op := ops.Operator{}
+			op := &ops.Operator{}
 			op.Code = ops.OpName2Code("line")
 			a := &attr.Attribute{Type: attr.AttrTNumber, Number: pi.Items[0].LineNumBegin}
 			env.Output.Print("pi.Items[0].LineNumBegin %v", pi.Items[0].LineNumBegin)
 			op.Attributes = append(op.Attributes, a)
 
 			if rp.StackPos >= 0 {
-				rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op)
+				rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op)
 			} else {
-				rp.Operators = append(rp.Operators, &op)
+				rp.Operators = append(rp.Operators, op)
 			}
 		*/
-		op_l := ops.Operator{}
+		op_l := &ops.Operator{}
 		op_l.Code = ops.OpName2Code("line")
 		a_l := &attr.Attribute{Type: attr.AttrTNumber, Number: pi.Items[0].LineNumBegin}
 		//env.Output.Print("pi.Items[0].LineNumBegin %v", pi.Items[0].LineNumBegin)
 		op_l.Attributes = append(op_l.Attributes, a_l)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op_l)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op_l)
 		} else {
-			rp.Operators = append(rp.Operators, &op_l)
+			rp.Operators = append(rp.Operators, op_l)
 		}
 
-		op_d := ops.Operator{}
+		op_d := &ops.Operator{}
 		op_d.Code = ops.OpName2Code("debug")
 		a1_d, err := ParseArg("text")
 		if err != nil {
@@ -1266,9 +1272,9 @@ func fIf(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 
 		/*
 			if rp.StackPos >= 0 {
-				rp.Stack[rp.StackPos].ExecOps = append([]*ops.Operator{&op_d}, rp.Stack[rp.StackPos].ExecOps...)
+				rp.Stack[rp.StackPos].ExecOps = append([]*ops.Operator{op_d}, rp.Stack[rp.StackPos].ExecOps...)
 			} else {
-				rp.Operators = append([]*ops.Operator{&op_d}, rp.Operators...)
+				rp.Operators = append([]*ops.Operator{op_d}, rp.Operators...)
 			}
 		*/
 
@@ -1284,15 +1290,15 @@ func fIf(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 		eops := rp.Stack[rp.StackPos].ExecOps
 		l := len(eops)
 
-		op := ops.Operator{}
+		op := &ops.Operator{}
 		op.Code = ops.OpName2Code("branch_if_false")
 		a := attr.NewAttribute(attr.AttrTNumber, fmt.Sprintf("%v", l), nil)
 		op.Attributes = append(op.Attributes, a)
 
 		if rp.StackPos > 0 {
-			rp.Stack[rp.StackPos-1].ExecOps = append(rp.Stack[rp.StackPos-1].ExecOps, &op)
+			rp.Stack[rp.StackPos-1].ExecOps = append(rp.Stack[rp.StackPos-1].ExecOps, op)
 		} else {
-			rp.Operators = append(rp.Operators, &op)
+			rp.Operators = append(rp.Operators, op)
 		}
 		// добавляем выполняемые в случае исполнения условия команды
 		if rp.StackPos > 0 {
@@ -1325,16 +1331,16 @@ func fCondition1(pi parser.ParseItem, env *parser.Env, level int) (string, error
 
 		rp := env.Struct.(FrameParser)
 
-		opln := ops.Operator{}
+		opln := &ops.Operator{}
 		opln.Code = ops.OpName2Code("line")
 		a := &attr.Attribute{Type: attr.AttrTNumber, Number: pi.Items[0].LineNumBegin}
 		//env.Output.Print("pi.Items[0].LineNumBegin %v", pi.Items[0].LineNumBegin)
 		opln.Attributes = append(opln.Attributes, a)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ConditionOps = append(rp.Stack[rp.StackPos].ConditionOps, &opln)
+			rp.Stack[rp.StackPos].ConditionOps = append(rp.Stack[rp.StackPos].ConditionOps, opln)
 		} else {
-			rp.Operators = append(rp.Operators, &opln)
+			rp.Operators = append(rp.Operators, opln)
 		}
 
 		// надо понимать, что передалось - переменная или константа.
@@ -1342,7 +1348,7 @@ func fCondition1(pi parser.ParseItem, env *parser.Env, level int) (string, error
 		if err != nil {
 			return "", err
 		}
-		opl := ops.Operator{}
+		opl := &ops.Operator{}
 
 		t, _, array := attr.GetAttribute(al)
 		switch t {
@@ -1365,7 +1371,7 @@ func fCondition1(pi parser.ParseItem, env *parser.Env, level int) (string, error
 		if err != nil {
 			return "", err
 		}
-		opr := ops.Operator{}
+		opr := &ops.Operator{}
 
 		t, _, array = attr.GetAttribute(ar)
 		switch t {
@@ -1385,18 +1391,18 @@ func fCondition1(pi parser.ParseItem, env *parser.Env, level int) (string, error
 		opr.Attributes = append(opr.Attributes, ar)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ConditionOps = append(rp.Stack[rp.StackPos].ConditionOps, &opr)
+			rp.Stack[rp.StackPos].ConditionOps = append(rp.Stack[rp.StackPos].ConditionOps, opr)
 		} else {
-			rp.Operators = append(rp.Operators, &opr)
+			rp.Operators = append(rp.Operators, opr)
 		}
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ConditionOps = append(rp.Stack[rp.StackPos].ConditionOps, &opl)
+			rp.Stack[rp.StackPos].ConditionOps = append(rp.Stack[rp.StackPos].ConditionOps, opl)
 		} else {
-			rp.Operators = append(rp.Operators, &opl)
+			rp.Operators = append(rp.Operators, opl)
 		}
 
-		op := ops.Operator{}
+		op := &ops.Operator{}
 		switch sign {
 		case "==":
 			op.Code = ops.OpName2Code("eq")
@@ -1423,9 +1429,9 @@ func fCondition1(pi parser.ParseItem, env *parser.Env, level int) (string, error
 		}
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ConditionOps = append(rp.Stack[rp.StackPos].ConditionOps, &op)
+			rp.Stack[rp.StackPos].ConditionOps = append(rp.Stack[rp.StackPos].ConditionOps, op)
 		} else {
-			rp.Operators = append(rp.Operators, &op)
+			rp.Operators = append(rp.Operators, op)
 		}
 		env.Struct = rp
 	}
@@ -1443,7 +1449,7 @@ func fCondition2(pi parser.ParseItem, env *parser.Env, level int) (string, error
 		env.CE.State = 1000
 
 		rp := env.Struct.(FrameParser)
-		op := ops.Operator{}
+		op := &ops.Operator{}
 		op.Code = ops.OpName2Code("gt")
 
 		rule_name := l + " " + r
@@ -1459,9 +1465,9 @@ func fCondition2(pi parser.ParseItem, env *parser.Env, level int) (string, error
 		}
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ConditionOps = append(rp.Stack[rp.StackPos].ConditionOps, &op)
+			rp.Stack[rp.StackPos].ConditionOps = append(rp.Stack[rp.StackPos].ConditionOps, op)
 		} else {
-			rp.Operators = append(rp.Operators, &op)
+			rp.Operators = append(rp.Operators, op)
 		}
 
 		env.Struct = rp
@@ -1480,7 +1486,7 @@ func fCondition3(pi parser.ParseItem, env *parser.Env, level int) (string, error
 		env.CE.State = 1000
 
 		rp := env.Struct.(FrameParser)
-		op := ops.Operator{}
+		op := &ops.Operator{}
 		op.Code = ops.OpName2Code("lt")
 
 		rule_name := l + " " + r
@@ -1496,9 +1502,9 @@ func fCondition3(pi parser.ParseItem, env *parser.Env, level int) (string, error
 		}
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ConditionOps = append(rp.Stack[rp.StackPos].ConditionOps, &op)
+			rp.Stack[rp.StackPos].ConditionOps = append(rp.Stack[rp.StackPos].ConditionOps, op)
 		} else {
-			rp.Operators = append(rp.Operators, &op)
+			rp.Operators = append(rp.Operators, op)
 		}
 
 		env.Struct = rp
@@ -1534,31 +1540,31 @@ func fForEach(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 
 		rp := env.Struct.(FrameParser)
 		/*
-			op := ops.Operator{}
+			op := &ops.Operator{}
 			op.Code = ops.OpName2Code("line")
 			a := &attr.Attribute{Type: attr.AttrTNumber, Number: pi.Items[0].LineNumBegin}
 			env.Output.Print("pi.Items[0].LineNumBegin %v", pi.Items[0].LineNumBegin)
 			op.Attributes = append(op.Attributes, a)
 
 			if rp.StackPos >= 0 {
-				rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op)
+				rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op)
 			} else {
-				rp.Operators = append(rp.Operators, &op)
+				rp.Operators = append(rp.Operators, op)
 			}
 		*/
 		bb_s := []*ops.Operator{}
 
-		op_l := ops.Operator{}
+		op_l := &ops.Operator{}
 		op_l.Code = ops.OpName2Code("line")
 		a_l := &attr.Attribute{Type: attr.AttrTNumber, Number: pi.Items[0].LineNumBegin}
 		//env.Output.Print("pi.Items[0].LineNumBegin %v", pi.Items[0].LineNumBegin)
 		op_l.Attributes = append(op_l.Attributes, a_l)
-		bb_s = append(bb_s, &op_l)
+		bb_s = append(bb_s, op_l)
 		/*
 			if rp.StackPos >= 0 {
-				rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op_l)
+				rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op_l)
 			} else {
-				rp.Operators = append(rp.Operators, &op_l)
+				rp.Operators = append(rp.Operators, op_l)
 			}
 		*/
 		eops := rp.Stack[rp.StackPos].ExecOps
@@ -1570,7 +1576,7 @@ func fForEach(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 		// iteration (iteration_xxx) -> stack
 		// stack -> set var <var>
 
-		op_d := ops.Operator{}
+		op_d := &ops.Operator{}
 		op_d.Code = ops.OpName2Code("debug")
 		a1_d, err := ParseArg("text")
 		if err != nil {
@@ -1582,10 +1588,10 @@ func fForEach(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 			return "", err
 		}
 		op_d.Attributes = append(op_d.Attributes, a2_d)
-		bb_s = append(bb_s, &op_d)
+		bb_s = append(bb_s, op_d)
 
 		expr_parser := func(s string) error {
-			ssl := parser.ParseArgListFull(s1, env.Output)
+			ssl := parser.ParseArgListFull(s, env.Output)
 			state := 0
 			symbol := ""
 			args := ""
@@ -1626,7 +1632,7 @@ func fForEach(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 			switch state {
 			case 0:
 				// заменяем на вызов поиска фрейма
-				op1 := ops.Operator{}
+				op1 := &ops.Operator{}
 				op1.Code = ops.OpName2Code("find_frame")
 
 				sl := strings.Split(args, ",")
@@ -1638,13 +1644,13 @@ func fForEach(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 					}
 					op1.Attributes = append(op1.Attributes, a)
 				}
-				bb_s = append(bb_s, &op1)
+				bb_s = append(bb_s, op1)
 
 			case 1, 3:
 				// проверяем что это переменная
 				if symbol[0] == '?' {
 					// строим вызов получения переменной
-					op14 := ops.Operator{}
+					op14 := &ops.Operator{}
 					op14.Code = ops.OpName2Code("get")
 					a12, err1 := ParseArg(symbol)
 					if err1 != nil {
@@ -1652,10 +1658,10 @@ func fForEach(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 					}
 					op14.Attributes = append(op14.Attributes, a12)
 
-					bb_s = append(bb_s, &op14)
+					bb_s = append(bb_s, op14)
 				} else {
 					// нет это константа
-					op1 := ops.Operator{}
+					op1 := &ops.Operator{}
 					op1.Code = ops.OpName2Code("const")
 
 					a, err := ParseArg(symbol)
@@ -1664,14 +1670,14 @@ func fForEach(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 					}
 					op1.Attributes = append(op1.Attributes, a)
 
-					bb_s = append(bb_s, &op1)
+					bb_s = append(bb_s, op1)
 				}
 			case 2:
 				switch symbol {
 				case "найти":
 					{
 						// заменяем на вызов поиска фрейма
-						op1 := ops.Operator{}
+						op1 := &ops.Operator{}
 						op1.Code = ops.OpName2Code("find_frame")
 
 						sl := strings.Split(args, ",")
@@ -1683,7 +1689,7 @@ func fForEach(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 							}
 							op1.Attributes = append(op1.Attributes, a)
 						}
-						bb_s = append(bb_s, &op1)
+						bb_s = append(bb_s, op1)
 					}
 				}
 			}
@@ -1695,45 +1701,45 @@ func fForEach(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 			return "", err
 		}
 		// дублируем стек
-		op21 := ops.Operator{}
+		op21 := &ops.Operator{}
 		op21.Code = ops.OpName2Code("dup")
 
-		bb_s = append(bb_s, &op21)
+		bb_s = append(bb_s, op21)
 
 		// проверяем, что на выходе что то есть, а не пустота
-		op22 := ops.Operator{}
+		op22 := &ops.Operator{}
 		op22.Code = ops.OpName2Code("empty")
 
-		bb_s = append(bb_s, &op22)
+		bb_s = append(bb_s, op22)
 
 		// делаем переход на один оператор дальше если не истина (то есть не пусто)
-		op3 := ops.Operator{}
+		op3 := &ops.Operator{}
 		op3.Code = ops.OpName2Code("branch_if_false")
 		a3 := attr.NewAttribute(attr.AttrTNumber, fmt.Sprintf("%v", 3), nil)
 		op3.Attributes = append(op3.Attributes, a3)
 
-		bb_s = append(bb_s, &op3)
+		bb_s = append(bb_s, op3)
 
 		// выбираем результат из стека и переходим на конец цикла
-		op31 := ops.Operator{}
+		op31 := &ops.Operator{}
 		op31.Code = ops.OpName2Code("clear")
 
-		bb_s = append(bb_s, &op31)
+		bb_s = append(bb_s, op31)
 
-		op32 := ops.Operator{}
+		op32 := &ops.Operator{}
 		op32.Code = ops.OpName2Code("branch")
 		a32 := attr.NewAttribute(attr.AttrTNumber, fmt.Sprintf("%v", 1+3+eops_l+3), nil)
 		op32.Attributes = append(op32.Attributes, a32)
 
-		bb_s = append(bb_s, &op32)
+		bb_s = append(bb_s, op32)
 
 		// так как результат не пуст то создаем итератор
-		op11 := ops.Operator{}
+		op11 := &ops.Operator{}
 		op11.Code = ops.OpName2Code("create_iterator")
 
-		bb_s = append(bb_s, &op11)
+		bb_s = append(bb_s, op11)
 
-		op12 := ops.Operator{}
+		op12 := &ops.Operator{}
 		op12.Code = ops.OpName2Code("set")
 		// переменная итератора
 		sss := fmt.Sprintf("?variable_%v", uqe.UniqueValue(8))
@@ -1743,12 +1749,12 @@ func fForEach(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 		}
 		op12.Attributes = append(op12.Attributes, a)
 
-		bb_s = append(bb_s, &op12)
+		bb_s = append(bb_s, op12)
 
 		bb := []*ops.Operator{}
 
 		// эта точка откуда начинется итерация - загружаем в стек из переменной
-		op14 := ops.Operator{}
+		op14 := &ops.Operator{}
 		op14.Code = ops.OpName2Code("get")
 		a12, err1 := ParseArg(sss)
 		if err1 != nil {
@@ -1756,28 +1762,28 @@ func fForEach(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 		}
 		op14.Attributes = append(op14.Attributes, a12)
 
-		bb = append(bb, &op14)
+		bb = append(bb, op14)
 
 		// делаем итерацию
-		op13 := ops.Operator{}
+		op13 := &ops.Operator{}
 		op13.Code = ops.OpName2Code("iteration")
 
-		bb = append(bb, &op13)
+		bb = append(bb, op13)
 
 		// сохраняем результат в стек
-		op2 := ops.Operator{}
+		op2 := &ops.Operator{}
 		op2.Code = ops.OpName2Code("set")
 		a2, err2 := ParseArg(s2)
 		if err2 != nil {
 			return "", err2
 		}
 		op2.Attributes = append(op2.Attributes, a2)
-		bb = append(bb, &op2)
+		bb = append(bb, op2)
 
 		// добавляем тело цикла
 		bb = append(bb, eops...)
 
-		op15 := ops.Operator{}
+		op15 := &ops.Operator{}
 		op15.Code = ops.OpName2Code("get")
 		a13, err1 := ParseArg(sss)
 		if err1 != nil {
@@ -1785,19 +1791,19 @@ func fForEach(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 		}
 		op15.Attributes = append(op15.Attributes, a13)
 
-		bb = append(bb, &op15)
+		bb = append(bb, op15)
 
 		// проверяем что итератор не кончился - в стеке true если все кончилось
-		op131 := ops.Operator{}
+		op131 := &ops.Operator{}
 		op131.Code = ops.OpName2Code("check_iteration")
 
-		bb = append(bb, &op131)
+		bb = append(bb, op131)
 
-		op33 := ops.Operator{}
+		op33 := &ops.Operator{}
 		op33.Code = ops.OpName2Code("branch_if_false")
 		a31 := attr.NewAttribute(attr.AttrTNumber, fmt.Sprintf("%v", -(len(bb))), nil)
 		op33.Attributes = append(op33.Attributes, a31)
-		bb = append(bb, &op33)
+		bb = append(bb, op33)
 
 		if rp.StackPos > 0 {
 			rp.Stack[rp.StackPos-1].ExecOps = append(rp.Stack[rp.StackPos-1].ExecOps, bb_s...)
@@ -1856,17 +1862,17 @@ func fWhile(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 
 		bb_s := []*ops.Operator{}
 
-		opl := ops.Operator{}
+		opl := &ops.Operator{}
 		opl.Code = ops.OpName2Code("line")
 		a := &attr.Attribute{Type: attr.AttrTNumber, Number: pi.Items[0].LineNumBegin}
 		//env.Output.Print("pi.Items[0].LineNumBegin %v", pi.Items[0].LineNumBegin)
 		opl.Attributes = append(opl.Attributes, a)
-		bb_s = append(bb_s, &opl)
+		bb_s = append(bb_s, opl)
 
 		eops := rp.Stack[rp.StackPos].ExecOps
 		eops_l := len(eops)
 
-		op_d := ops.Operator{}
+		op_d := &ops.Operator{}
 		op_d.Code = ops.OpName2Code("debug")
 		a1_d, err := ParseArg("text")
 		if err != nil {
@@ -1878,7 +1884,7 @@ func fWhile(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 			return "", err
 		}
 		op_d.Attributes = append(op_d.Attributes, a2_d)
-		bb_s = append(bb_s, &op_d)
+		bb_s = append(bb_s, op_d)
 
 		// !!!! начало циклически исполняемого блока
 		bb := []*ops.Operator{}
@@ -1890,20 +1896,20 @@ func fWhile(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 		bb = append(bb, cops...)
 
 		// делаем переход в конец если не истина (то есть не пусто)
-		op3 := ops.Operator{}
+		op3 := &ops.Operator{}
 		op3.Code = ops.OpName2Code("branch_if_false")
 		a3 := attr.NewAttribute(attr.AttrTNumber, fmt.Sprintf("%v", 1+eops_l+1), nil)
 		op3.Attributes = append(op3.Attributes, a3)
-		bb = append(bb, &op3)
+		bb = append(bb, op3)
 
 		// добавляем тело цикла
 		bb = append(bb, eops...)
 
-		op32 := ops.Operator{}
+		op32 := &ops.Operator{}
 		op32.Code = ops.OpName2Code("branch")
 		a32 := attr.NewAttribute(attr.AttrTNumber, fmt.Sprintf("%v", -(1+eops_l+cops_l)), nil)
 		op32.Attributes = append(op32.Attributes, a32)
-		bb = append(bb, &op32)
+		bb = append(bb, op32)
 
 		if rp.StackPos > 0 {
 			rp.Stack[rp.StackPos-1].ExecOps = append(rp.Stack[rp.StackPos-1].ExecOps, bb_s...)
@@ -1942,7 +1948,7 @@ func fRelation(pi parser.ParseItem, env *parser.Env, level int) (string, error) 
 
 		rp := env.Struct.(FrameParser)
 
-		op := ops.Operator{}
+		op := &ops.Operator{}
 		op.Code = ops.OpName2Code("relation")
 
 		for i := 0; i < 3; i++ {
@@ -1955,9 +1961,9 @@ func fRelation(pi parser.ParseItem, env *parser.Env, level int) (string, error) 
 		}
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op)
 		} else {
-			rp.Operators = append(rp.Operators, &op)
+			rp.Operators = append(rp.Operators, op)
 		}
 		env.Struct = rp
 	}
@@ -1975,19 +1981,19 @@ func fFrame(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 
 		rp := env.Struct.(FrameParser)
 
-		op := ops.Operator{}
+		op := &ops.Operator{}
 		op.Code = ops.OpName2Code("line")
 		a := &attr.Attribute{Type: attr.AttrTNumber, Number: pi.Items[0].LineNumBegin}
 		//env.Output.Print("pi.Items[0].LineNumBegin %v", pi.Items[0].LineNumBegin)
 		op.Attributes = append(op.Attributes, a)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op)
 		} else {
-			rp.Operators = append(rp.Operators, &op)
+			rp.Operators = append(rp.Operators, op)
 		}
 
-		op_d := ops.Operator{}
+		op_d := &ops.Operator{}
 		op_d.Code = ops.OpName2Code("debug")
 		a1_d, err := ParseArg("text")
 		if err != nil {
@@ -2001,12 +2007,12 @@ func fFrame(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 		op_d.Attributes = append(op_d.Attributes, a2_d)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append([]*ops.Operator{&op_d}, rp.Stack[rp.StackPos].ExecOps...)
+			rp.Stack[rp.StackPos].ExecOps = append([]*ops.Operator{op_d}, rp.Stack[rp.StackPos].ExecOps...)
 		} else {
-			rp.Operators = append([]*ops.Operator{&op_d}, rp.Operators...)
+			rp.Operators = append([]*ops.Operator{op_d}, rp.Operators...)
 		}
 
-		op = ops.Operator{}
+		op = &ops.Operator{}
 		op.Code = ops.OpName2Code("frame")
 
 		sl := strings.Split(s, ",")
@@ -2020,9 +2026,9 @@ func fFrame(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 		}
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op)
 		} else {
-			rp.Operators = append(rp.Operators, &op)
+			rp.Operators = append(rp.Operators, op)
 		}
 		env.Struct = rp
 	}
@@ -2041,19 +2047,19 @@ func fFrameWithAssignment(pi parser.ParseItem, env *parser.Env, level int) (stri
 
 		rp := env.Struct.(FrameParser)
 
-		op := ops.Operator{}
+		op := &ops.Operator{}
 		op.Code = ops.OpName2Code("line")
 		a := &attr.Attribute{Type: attr.AttrTNumber, Number: pi.Items[0].LineNumBegin}
 		//env.Output.Print("pi.Items[0].LineNumBegin %v", pi.Items[0].LineNumBegin)
 		op.Attributes = append(op.Attributes, a)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op)
 		} else {
-			rp.Operators = append(rp.Operators, &op)
+			rp.Operators = append(rp.Operators, op)
 		}
 
-		op_d := ops.Operator{}
+		op_d := &ops.Operator{}
 		op_d.Code = ops.OpName2Code("debug")
 		a1_d, err := ParseArg("text")
 		if err != nil {
@@ -2067,12 +2073,12 @@ func fFrameWithAssignment(pi parser.ParseItem, env *parser.Env, level int) (stri
 		op_d.Attributes = append(op_d.Attributes, a2_d)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append([]*ops.Operator{&op_d}, rp.Stack[rp.StackPos].ExecOps...)
+			rp.Stack[rp.StackPos].ExecOps = append([]*ops.Operator{op_d}, rp.Stack[rp.StackPos].ExecOps...)
 		} else {
-			rp.Operators = append([]*ops.Operator{&op_d}, rp.Operators...)
+			rp.Operators = append([]*ops.Operator{op_d}, rp.Operators...)
 		}
 
-		op = ops.Operator{}
+		op = &ops.Operator{}
 		op.Code = ops.OpName2Code("frame")
 
 		sl := strings.Split(s, ",")
@@ -2086,12 +2092,12 @@ func fFrameWithAssignment(pi parser.ParseItem, env *parser.Env, level int) (stri
 		}
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op)
 		} else {
-			rp.Operators = append(rp.Operators, &op)
+			rp.Operators = append(rp.Operators, op)
 		}
 
-		op2 := ops.Operator{}
+		op2 := &ops.Operator{}
 		op2.Code = ops.OpName2Code("set")
 		sa := strings.Split(s2, ",")
 		for i := range sa {
@@ -2103,9 +2109,9 @@ func fFrameWithAssignment(pi parser.ParseItem, env *parser.Env, level int) (stri
 			op2.Attributes = append(op2.Attributes, a)
 		}
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op2)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op2)
 		} else {
-			rp.Operators = append(rp.Operators, &op2)
+			rp.Operators = append(rp.Operators, op2)
 		}
 
 		env.Struct = rp
@@ -2125,19 +2131,19 @@ func fFindWithAssignment(pi parser.ParseItem, env *parser.Env, level int) (strin
 
 		rp := env.Struct.(FrameParser)
 
-		op := ops.Operator{}
+		op := &ops.Operator{}
 		op.Code = ops.OpName2Code("line")
 		a := &attr.Attribute{Type: attr.AttrTNumber, Number: pi.Items[0].LineNumBegin}
 		//env.Output.Print("pi.Items[0].LineNumBegin %v", pi.Items[0].LineNumBegin)
 		op.Attributes = append(op.Attributes, a)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op)
 		} else {
-			rp.Operators = append(rp.Operators, &op)
+			rp.Operators = append(rp.Operators, op)
 		}
 
-		op_d := ops.Operator{}
+		op_d := &ops.Operator{}
 		op_d.Code = ops.OpName2Code("debug")
 		a1_d, err := ParseArg("text")
 		if err != nil {
@@ -2151,12 +2157,12 @@ func fFindWithAssignment(pi parser.ParseItem, env *parser.Env, level int) (strin
 		op_d.Attributes = append(op_d.Attributes, a2_d)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op_d)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op_d)
 		} else {
-			rp.Operators = append(rp.Operators, &op_d)
+			rp.Operators = append(rp.Operators, op_d)
 		}
 
-		op1 := ops.Operator{}
+		op1 := &ops.Operator{}
 		op1.Code = ops.OpName2Code("find_frame")
 
 		sl := ns.ParseStringBySignList(s1, []string{","})
@@ -2170,12 +2176,12 @@ func fFindWithAssignment(pi parser.ParseItem, env *parser.Env, level int) (strin
 		}
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op1)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op1)
 		} else {
-			rp.Operators = append(rp.Operators, &op1)
+			rp.Operators = append(rp.Operators, op1)
 		}
 
-		op2 := ops.Operator{}
+		op2 := &ops.Operator{}
 		op2.Code = ops.OpName2Code("set")
 		sa := strings.Split(s2, ",")
 		for i := range sa {
@@ -2188,9 +2194,9 @@ func fFindWithAssignment(pi parser.ParseItem, env *parser.Env, level int) (strin
 		}
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op2)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op2)
 		} else {
-			rp.Operators = append(rp.Operators, &op2)
+			rp.Operators = append(rp.Operators, op2)
 		}
 
 		env.Struct = rp
@@ -2210,19 +2216,19 @@ func fFindAndAdd(pi parser.ParseItem, env *parser.Env, level int) (string, error
 
 		rp := env.Struct.(FrameParser)
 
-		op_l := ops.Operator{}
+		op_l := &ops.Operator{}
 		op_l.Code = ops.OpName2Code("line")
 		a_l := &attr.Attribute{Type: attr.AttrTNumber, Number: pi.Items[0].LineNumBegin}
 		//env.Output.Print("pi.Items[0].LineNumBegin %v", pi.Items[0].LineNumBegin)
 		op_l.Attributes = append(op_l.Attributes, a_l)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op_l)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op_l)
 		} else {
-			rp.Operators = append(rp.Operators, &op_l)
+			rp.Operators = append(rp.Operators, op_l)
 		}
 
-		op_d := ops.Operator{}
+		op_d := &ops.Operator{}
 		op_d.Code = ops.OpName2Code("debug")
 		a1_d, err := ParseArg("text")
 		if err != nil {
@@ -2236,12 +2242,12 @@ func fFindAndAdd(pi parser.ParseItem, env *parser.Env, level int) (string, error
 		op_d.Attributes = append(op_d.Attributes, a2_d)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op_d)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op_d)
 		} else {
-			rp.Operators = append(rp.Operators, &op_d)
+			rp.Operators = append(rp.Operators, op_d)
 		}
 
-		op1 := ops.Operator{}
+		op1 := &ops.Operator{}
 		op1.Code = ops.OpName2Code("find_frame")
 
 		sa := ns.ParseStringBySignList(s1, []string{","})
@@ -2255,66 +2261,66 @@ func fFindAndAdd(pi parser.ParseItem, env *parser.Env, level int) (string, error
 		}
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op1)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op1)
 		} else {
-			rp.Operators = append(rp.Operators, &op1)
+			rp.Operators = append(rp.Operators, op1)
 		}
 
 		// дублируем стек
-		op21 := ops.Operator{}
+		op21 := &ops.Operator{}
 		op21.Code = ops.OpName2Code("dup")
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op21)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op21)
 		} else {
-			rp.Operators = append(rp.Operators, &op21)
+			rp.Operators = append(rp.Operators, op21)
 		}
 
 		// проверяем, что на выходе что то есть, а не пустота
-		op22 := ops.Operator{}
+		op22 := &ops.Operator{}
 		op22.Code = ops.OpName2Code("empty")
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op22)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op22)
 		} else {
-			rp.Operators = append(rp.Operators, &op22)
+			rp.Operators = append(rp.Operators, op22)
 		}
 
 		// делаем переход на один оператор дальше если не истина (то есть не пусто)
-		op3 := ops.Operator{}
+		op3 := &ops.Operator{}
 		op3.Code = ops.OpName2Code("branch_if_false")
 		a3 := attr.NewAttribute(attr.AttrTNumber, fmt.Sprintf("%v", 3), nil)
 		op3.Attributes = append(op3.Attributes, a3)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op3)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op3)
 		} else {
-			rp.Operators = append(rp.Operators, &op3)
+			rp.Operators = append(rp.Operators, op3)
 		}
 
 		// выбираем результат из стека и переходим на конец цикла
-		op31 := ops.Operator{}
+		op31 := &ops.Operator{}
 		op31.Code = ops.OpName2Code("clear")
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op31)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op31)
 		} else {
-			rp.Operators = append(rp.Operators, &op31)
+			rp.Operators = append(rp.Operators, op31)
 		}
 
-		op32 := ops.Operator{}
+		op32 := &ops.Operator{}
 		op32.Code = ops.OpName2Code("branch")
 		a32 := attr.NewAttribute(attr.AttrTNumber, fmt.Sprintf("%v", 1+1), nil)
 		op32.Attributes = append(op32.Attributes, a32)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op32)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op32)
 		} else {
-			rp.Operators = append(rp.Operators, &op32)
+			rp.Operators = append(rp.Operators, op32)
 		}
 
 		// в стеке то к чему надо добавить
-		op2 := ops.Operator{}
+		op2 := &ops.Operator{}
 		op2.Code = ops.OpName2Code("add_slots")
 		sa = strings.Split(s2, ",")
 		for i := range sa {
@@ -2327,9 +2333,9 @@ func fFindAndAdd(pi parser.ParseItem, env *parser.Env, level int) (string, error
 		}
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op2)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op2)
 		} else {
-			rp.Operators = append(rp.Operators, &op2)
+			rp.Operators = append(rp.Operators, op2)
 		}
 
 		env.Struct = rp
@@ -2350,19 +2356,19 @@ func fUnify(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 
 		rp := env.Struct.(FrameParser)
 
-		op := ops.Operator{}
+		op := &ops.Operator{}
 		op.Code = ops.OpName2Code("line")
 		a := &attr.Attribute{Type: attr.AttrTNumber, Number: pi.Items[0].LineNumBegin}
 		//env.Output.Print("pi.Items[0].LineNumBegin %v", pi.Items[0].LineNumBegin)
 		op.Attributes = append(op.Attributes, a)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op)
 		} else {
-			rp.Operators = append(rp.Operators, &op)
+			rp.Operators = append(rp.Operators, op)
 		}
 
-		op_d := ops.Operator{}
+		op_d := &ops.Operator{}
 		op_d.Code = ops.OpName2Code("debug")
 		a1_d, err := ParseArg("text")
 		if err != nil {
@@ -2376,12 +2382,12 @@ func fUnify(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 		op_d.Attributes = append(op_d.Attributes, a2_d)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op_d)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op_d)
 		} else {
-			rp.Operators = append(rp.Operators, &op_d)
+			rp.Operators = append(rp.Operators, op_d)
 		}
 
-		op1 := ops.Operator{}
+		op1 := &ops.Operator{}
 		op1.Code = ops.OpName2Code("find_frame")
 
 		sl := strings.Split(s1, ",")
@@ -2395,12 +2401,12 @@ func fUnify(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 		}
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op1)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op1)
 		} else {
-			rp.Operators = append(rp.Operators, &op1)
+			rp.Operators = append(rp.Operators, op1)
 		}
 
-		op2 := ops.Operator{}
+		op2 := &ops.Operator{}
 		op2.Code = ops.OpName2Code("unify")
 		a, err = ParseArg(s2)
 		if err != nil {
@@ -2409,12 +2415,12 @@ func fUnify(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 		op2.Attributes = append(op2.Attributes, a)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op2)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op2)
 		} else {
-			rp.Operators = append(rp.Operators, &op2)
+			rp.Operators = append(rp.Operators, op2)
 		}
 
-		op3 := ops.Operator{}
+		op3 := &ops.Operator{}
 		op3.Code = ops.OpName2Code("set")
 		a2, err2 := ParseArg(s3)
 		if err2 != nil {
@@ -2423,9 +2429,9 @@ func fUnify(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 		op3.Attributes = append(op3.Attributes, a2)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op3)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op3)
 		} else {
-			rp.Operators = append(rp.Operators, &op3)
+			rp.Operators = append(rp.Operators, op3)
 		}
 		env.Struct = rp
 
@@ -2442,19 +2448,19 @@ func fBreak(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 
 		rp := env.Struct.(FrameParser)
 
-		op := ops.Operator{}
+		op := &ops.Operator{}
 		op.Code = ops.OpName2Code("line")
 		a := &attr.Attribute{Type: attr.AttrTNumber, Number: pi.Items[0].LineNumBegin}
 		//env.Output.Print("pi.Items[0].LineNumBegin %v", pi.Items[0].LineNumBegin)
 		op.Attributes = append(op.Attributes, a)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op)
 		} else {
-			rp.Operators = append(rp.Operators, &op)
+			rp.Operators = append(rp.Operators, op)
 		}
 
-		op_d := ops.Operator{}
+		op_d := &ops.Operator{}
 		op_d.Code = ops.OpName2Code("debug")
 		a1_d, err := ParseArg("text")
 		if err != nil {
@@ -2468,18 +2474,18 @@ func fBreak(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 		op_d.Attributes = append(op_d.Attributes, a2_d)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op_d)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op_d)
 		} else {
-			rp.Operators = append(rp.Operators, &op_d)
+			rp.Operators = append(rp.Operators, op_d)
 		}
 
-		op = ops.Operator{}
+		op = &ops.Operator{}
 		op.Code = ops.OpName2Code("break")
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op)
 		} else {
-			rp.Operators = append(rp.Operators, &op)
+			rp.Operators = append(rp.Operators, op)
 		}
 
 		env.Struct = rp
@@ -2497,19 +2503,19 @@ func fContinue(pi parser.ParseItem, env *parser.Env, level int) (string, error) 
 
 		rp := env.Struct.(FrameParser)
 
-		op := ops.Operator{}
+		op := &ops.Operator{}
 		op.Code = ops.OpName2Code("line")
 		a := &attr.Attribute{Type: attr.AttrTNumber, Number: pi.Items[0].LineNumBegin}
 		//env.Output.Print("pi.Items[0].LineNumBegin %v", pi.Items[0].LineNumBegin)
 		op.Attributes = append(op.Attributes, a)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op)
 		} else {
-			rp.Operators = append(rp.Operators, &op)
+			rp.Operators = append(rp.Operators, op)
 		}
 
-		op_d := ops.Operator{}
+		op_d := &ops.Operator{}
 		op_d.Code = ops.OpName2Code("debug")
 		a1_d, err := ParseArg("text")
 		if err != nil {
@@ -2523,18 +2529,18 @@ func fContinue(pi parser.ParseItem, env *parser.Env, level int) (string, error) 
 		op_d.Attributes = append(op_d.Attributes, a2_d)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op_d)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op_d)
 		} else {
-			rp.Operators = append(rp.Operators, &op_d)
+			rp.Operators = append(rp.Operators, op_d)
 		}
 
-		op = ops.Operator{}
+		op = &ops.Operator{}
 		op.Code = ops.OpName2Code("continue")
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op)
 		} else {
-			rp.Operators = append(rp.Operators, &op)
+			rp.Operators = append(rp.Operators, op)
 		}
 
 		env.Struct = rp
@@ -2555,19 +2561,19 @@ func fSet(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 
 		rp := env.Struct.(FrameParser)
 
-		op_l := ops.Operator{}
+		op_l := &ops.Operator{}
 		op_l.Code = ops.OpName2Code("line")
 		a_l := &attr.Attribute{Type: attr.AttrTNumber, Number: pi.Items[0].LineNumBegin}
 		//env.Output.Print("pi.Items[0].LineNumBegin %v", pi.Items[0].LineNumBegin)
 		op_l.Attributes = append(op_l.Attributes, a_l)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op_l)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op_l)
 		} else {
-			rp.Operators = append(rp.Operators, &op_l)
+			rp.Operators = append(rp.Operators, op_l)
 		}
 
-		op_d := ops.Operator{}
+		op_d := &ops.Operator{}
 		op_d.Code = ops.OpName2Code("debug")
 		a1_d, err := ParseArg("text")
 		if err != nil {
@@ -2581,12 +2587,12 @@ func fSet(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 		op_d.Attributes = append(op_d.Attributes, a2_d)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op_d)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op_d)
 		} else {
-			rp.Operators = append(rp.Operators, &op_d)
+			rp.Operators = append(rp.Operators, op_d)
 		}
 
-		op1 := ops.Operator{}
+		op1 := &ops.Operator{}
 		op1.Code = ops.OpName2Code("const")
 
 		a, err := ParseArg(s1)
@@ -2596,12 +2602,12 @@ func fSet(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 		op1.Attributes = append(op1.Attributes, a)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op1)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op1)
 		} else {
-			rp.Operators = append(rp.Operators, &op1)
+			rp.Operators = append(rp.Operators, op1)
 		}
 
-		op3 := ops.Operator{}
+		op3 := &ops.Operator{}
 		op3.Code = ops.OpName2Code("set")
 		a2, err2 := ParseArg(s2)
 		if err2 != nil {
@@ -2610,9 +2616,9 @@ func fSet(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 		op3.Attributes = append(op3.Attributes, a2)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op3)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op3)
 		} else {
-			rp.Operators = append(rp.Operators, &op3)
+			rp.Operators = append(rp.Operators, op3)
 		}
 		env.Struct = rp
 
@@ -2632,19 +2638,19 @@ func fSetList(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 
 		rp := env.Struct.(FrameParser)
 
-		op_l := ops.Operator{}
+		op_l := &ops.Operator{}
 		op_l.Code = ops.OpName2Code("line")
 		a_l := &attr.Attribute{Type: attr.AttrTNumber, Number: pi.Items[0].LineNumBegin}
 		//env.Output.Print("pi.Items[0].LineNumBegin %v", pi.Items[0].LineNumBegin)
 		op_l.Attributes = append(op_l.Attributes, a_l)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op_l)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op_l)
 		} else {
-			rp.Operators = append(rp.Operators, &op_l)
+			rp.Operators = append(rp.Operators, op_l)
 		}
 
-		op_d := ops.Operator{}
+		op_d := &ops.Operator{}
 		op_d.Code = ops.OpName2Code("debug")
 		a1_d, err := ParseArg("text")
 		if err != nil {
@@ -2658,9 +2664,9 @@ func fSetList(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 		op_d.Attributes = append(op_d.Attributes, a2_d)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op_d)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op_d)
 		} else {
-			rp.Operators = append(rp.Operators, &op_d)
+			rp.Operators = append(rp.Operators, op_d)
 		}
 
 		// вначале надо вычислить список
@@ -2674,7 +2680,7 @@ func fSetList(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 				if err != nil {
 					return "", err
 				}
-				op := ops.Operator{}
+				op := &ops.Operator{}
 
 				t, _, array := attr.GetAttribute(a)
 				switch t {
@@ -2695,25 +2701,25 @@ func fSetList(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 				}
 				ll = ll + 1
 				if rp.StackPos >= 0 {
-					rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op)
+					rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op)
 				} else {
-					rp.Operators = append(rp.Operators, &op)
+					rp.Operators = append(rp.Operators, op)
 				}
 			}
 		}
 
-		op1 := ops.Operator{}
+		op1 := &ops.Operator{}
 		op1.Code = ops.OpName2Code("slice")
 		a32 := attr.NewAttribute(attr.AttrTNumber, fmt.Sprintf("%v", ll), nil)
 		op1.Attributes = append(op1.Attributes, a32)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op1)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op1)
 		} else {
-			rp.Operators = append(rp.Operators, &op1)
+			rp.Operators = append(rp.Operators, op1)
 		}
 
-		op3 := ops.Operator{}
+		op3 := &ops.Operator{}
 		op3.Code = ops.OpName2Code("set")
 		a2, err2 := ParseArg(s2)
 		if err2 != nil {
@@ -2722,12 +2728,65 @@ func fSetList(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 		op3.Attributes = append(op3.Attributes, a2)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op3)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op3)
 		} else {
-			rp.Operators = append(rp.Operators, &op3)
+			rp.Operators = append(rp.Operators, op3)
 		}
 		env.Struct = rp
 
+	}
+	return result, nil
+}
+
+func fConnectExternalFunction(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
+	result := ""
+	switch env.CE.State {
+	case 0:
+		// это просто секция по сути
+		function_name := pi.Items[1].Data
+		args_list := pi.Items[2].Data
+		alias_function_name := pi.Items[4].Data
+
+		result = fmt.Sprintf("(set_external_function %v (%v) as %v)", function_name, args_list, alias_function_name)
+		env.CE.State = 1000
+
+		rp := env.Struct.(FrameParser)
+
+		b := strings.Trim(args_list, " ")
+		args := strings.Split(b, ",")
+		args_ext := []string{}
+		for i := range args {
+			arg := args[i]
+			arg = strings.Trim(arg, " ")
+			a, err := ParseArg(arg)
+			if err != nil {
+				return "", err
+			}
+			args_ext = append(args_ext, a.Const)
+		}
+		na := len(args)
+
+		r := fnc.ExternalFunction{Name: function_name, NumArgs: na, Args: args_ext}
+		rp.Env.AddExternalFunction(r)
+		env.Struct = rp
+	}
+	return result, nil
+}
+
+func fPackage(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
+	result := ""
+	switch env.CE.State {
+	case 0:
+		// это просто секция по сути
+		package_name := pi.Items[1].Data
+
+		result = fmt.Sprintf("(package %v", package_name)
+		env.CE.State = 1000
+
+		rp := env.Struct.(FrameParser)
+
+		rp.Env.Package = package_name
+		env.Struct = rp
 	}
 	return result, nil
 }
@@ -2767,7 +2826,7 @@ func fVariable(pi parser.ParseItem, env *parser.Env, level int) (string, error) 
 
 		rp := env.Struct.(FrameParser)
 
-		op3 := ops.Operator{}
+		op3 := &ops.Operator{}
 		op3.Code = ops.OpName2Code("get")
 		a2, err2 := ParseArg(s)
 		if err2 != nil {
@@ -2776,9 +2835,9 @@ func fVariable(pi parser.ParseItem, env *parser.Env, level int) (string, error) 
 		op3.Attributes = append(op3.Attributes, a2)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ConditionOps = append(rp.Stack[rp.StackPos].ConditionOps, &op3)
+			rp.Stack[rp.StackPos].ConditionOps = append(rp.Stack[rp.StackPos].ConditionOps, op3)
 		} else {
-			rp.Operators = append(rp.Operators, &op3)
+			rp.Operators = append(rp.Operators, op3)
 		}
 
 	}
@@ -2796,7 +2855,7 @@ func fConst(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 
 		rp := env.Struct.(FrameParser)
 
-		op1 := ops.Operator{}
+		op1 := &ops.Operator{}
 		op1.Code = ops.OpName2Code("const")
 
 		a, err := ParseArg(s)
@@ -2806,9 +2865,9 @@ func fConst(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 		op1.Attributes = append(op1.Attributes, a)
 
 		if rp.StackPos >= 0 {
-			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, &op1)
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op1)
 		} else {
-			rp.Operators = append(rp.Operators, &op1)
+			rp.Operators = append(rp.Operators, op1)
 		}
 
 	}
@@ -3019,6 +3078,21 @@ func MakeRules(env *parser.Env) {
 	gr.AddItemToRule("symbols", "", 0, "", "", []string{}, env)
 	gr.AddRuleHandler(fCondition3, env)
 
+	//<symbols, == подключить> <symbols, > <symbols, > <(, > <symbols, == как> <symbols, > - подключение внешней функции как
+	gr = parser.MakeRule("подключение внешней функции как", env)
+	gr.AddItemToRule("symbols", "", 1, "подключить", "", []string{}, env)
+	gr.AddItemToRule("symbols", "", 0, "", "", []string{}, env)
+	gr.AddItemToRule("(", "", 0, "", "", []string{}, env)
+	gr.AddItemToRule("symbols", "", 1, "как", "", []string{}, env)
+	gr.AddItemToRule("symbols", "", 0, "", ";", []string{}, env)
+	gr.AddRuleHandler(fConnectExternalFunction, env)
+
+	//<symbols, == пакет> - определение пакета
+	gr = parser.MakeRule("пакет", env)
+	gr.AddItemToRule("symbols", "", 1, "пакет", "", []string{}, env)
+	gr.AddItemToRule("symbols", "", 0, "", "", []string{}, env)
+	gr.AddRuleHandler(fPackage, env)
+
 	// среднеуровневые элементы
 	// список в определении тринара или шаблона
 	// <symbols, > - просто символ
@@ -3064,7 +3138,8 @@ func MakeRules(env *parser.Env) {
 	gr.AddItemToRule("symbols", "", 0, ":", "", []string{}, env)
 	gr.AddItemToRule("symbols", "", 0, "", "", []string{}, env)
 
-	high_level_array := []string{"добавление отношений во фреймы", "определение фреймов", "определение функции", "определение метода"}
+	high_level_array := []string{"добавление отношений во фреймы", "определение фреймов", "определение функции",
+		"определение метода", "подключение внешней функции как", "пакет"}
 
 	expr_array := []string{"атрибут переменной", "строка", "символ"}
 

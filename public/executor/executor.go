@@ -28,7 +28,13 @@ func InitExecutorBase(debug int, output *print.Output) *ExecutorBase {
 	}
 }
 
-func InitExecutor(eb *ExecutorBase, output *print.Output, outputTranslate *print.Output, debug int) *Executor {
+func InitExecutor(
+	eb *ExecutorBase,
+	extFunctions map[string]func(args []*frl.Value) ([]*frl.Value, bool, error),
+	output *print.Output,
+	outputTranslate *print.Output,
+	debug int,
+) *Executor {
 	ie := frl.NewInterpreterEnv()
 	ie.SetDebug(debug) //xfd xff xff
 	ie.BindFunction(frl.Print_internal)
@@ -63,6 +69,7 @@ func InitExecutor(eb *ExecutorBase, output *print.Output, outputTranslate *print
 	ie.BindFunction(frl.SetSlotFrame_internal)
 	ie.BindFunction(frl.DeleteSlotFrame_internal)
 	ie.BindFunction(frl.EvalString_internal)
+	ie.ExternalFunctions = extFunctions
 
 	ie.SetFrameEnvironment(eb.fe)
 	ie.FE = eb.fe
@@ -103,6 +110,7 @@ func (e *Executor) ExecString(fileName string, data string, funcStartName string
 	if len(funcStartName) == 0 {
 		return nil
 	}
+
 	values := []*frl.Value{}
 	for _, arg := range args {
 		values = append(values, frl.CreateValue(arg))

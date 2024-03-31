@@ -10,6 +10,7 @@ import (
 
 	"github.com/wanderer69/FrL/internal/ws"
 	exec "github.com/wanderer69/FrL/public/executor"
+	frl "github.com/wanderer69/FrL/public/lib"
 	print "github.com/wanderer69/tools/parser/print"
 )
 
@@ -97,7 +98,8 @@ func main() {
 	outputBaseTranslate := print.NewOutput(basePrintFunc)
 
 	eb := exec.InitExecutorBase(0, outputBaseTranslate)
-	e := exec.InitExecutor(eb, output, outputTranslate, 0)
+	extFunctions := make(map[string]func(args []*frl.Value) ([]*frl.Value, bool, error))
+	e := exec.InitExecutor(eb, extFunctions, output, outputTranslate, 0)
 
 	wse.Server(eb, e)
 

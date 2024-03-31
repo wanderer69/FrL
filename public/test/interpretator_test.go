@@ -126,7 +126,7 @@ func TestFrame(t *testing.T) {
 				break
 			}
 		}
-		require.True(t, false)
+		require.True(t, true)
 	})
 
 	t.Run("value_store", func(t *testing.T) {
@@ -218,11 +218,11 @@ func TestFrame(t *testing.T) {
 		require.NoError(t, err)
 		compareResult(2)
 
-		require.True(t, false)
+		require.True(t, true)
 	})
 
 	t.Run("relations_store", func(t *testing.T) {
-		os.Remove("./Frames")
+		require.NoError(t, os.RemoveAll("./Frames"))
 		ns, err := frl.NewStore("./Frames", output)
 		require.NoError(t, err)
 
@@ -350,39 +350,39 @@ func TestFrame(t *testing.T) {
 			}
 		}
 
-		require.True(t, false)
+		require.True(t, true)
 	})
 
 	t.Run("test_to_type", func(t *testing.T) {
 		v, err := frl.ToType(true)
 		require.True(t, err)
-		require.Equal(t, 1, v)
+		require.Equal(t, 1, v.Int())
 
 		//		fmt.Printf("v %v, err %v\r\n", v, err)
 		v, err = frl.ToType(1)
 		require.True(t, err)
-		require.Equal(t, 2, v)
+		require.Equal(t, 2, v.Int())
 
 		//		fmt.Printf("v %v, err %v\r\n", v, err)
 		v, err = frl.ToType(1.1)
 		require.True(t, err)
-		require.Equal(t, 3, v)
+		require.Equal(t, 3, v.Int())
 
 		//		fmt.Printf("v %v, err %v\r\n", v, err)
 		v, err = frl.ToType("qwert")
 		require.True(t, err)
-		require.Equal(t, 4, v)
+		require.Equal(t, 4, v.Int())
 
 		//		fmt.Printf("v %v, err %v\r\n", v, err)
 		v, err = frl.ToType(frl.NewFrame())
 		require.True(t, err)
-		require.Equal(t, 5, v)
+		require.Equal(t, 5, v.Int())
 
 		//		fmt.Printf("v %v, err %v\r\n", v, err)
 
 		v, err = frl.ToType([]*frl.Value{frl.CreateValue("1"), frl.CreateValue("2"), frl.CreateValue("3")})
 		require.True(t, err)
-		require.Equal(t, 6, v)
+		require.Equal(t, 6, v.Int())
 
 		//		fmt.Printf("v %v, err %v\r\n", v, err)
 
@@ -393,14 +393,14 @@ func TestFrame(t *testing.T) {
 
 		v, err = frl.ToType(v1)
 		require.True(t, err)
-		require.Equal(t, 7, v)
+		require.Equal(t, 7, v.Int())
 
 		v, err = frl.ToType(nil)
 		//		fmt.Printf("v %v, err %v\r\n", v, err)
 		require.True(t, err)
-		require.Equal(t, 0, v)
+		require.Equal(t, 0, v.Int())
 
-		require.True(t, false)
+		require.True(t, true)
 	})
 
 	t.Run("uri_parse", func(t *testing.T) {
@@ -412,7 +412,7 @@ func TestFrame(t *testing.T) {
 		dctExpected := map[string]string{"fragment": "", "path": "", "query": "", "schema": "file", "source": ""}
 		require.Equal(t, dctExpected, dct)
 
-		require.True(t, false)
+		require.True(t, true)
 	})
 
 	t.Run("types_test", func(t *testing.T) {
@@ -465,6 +465,12 @@ func TestFrame(t *testing.T) {
 				samples = "а\r\n"
 			case 20:
 				samples = "р\r\n"
+			case 21:
+				samples = "iterator type frame pos 0\r\n"
+			case 22:
+				samples = "iterator type slice pos 0\r\n"
+			case 23:
+				samples = "iterator type string pos 0\r\n"
 			}
 			fmt.Printf("%v", buffer)
 			require.Equal(t, samples, buffer)
@@ -509,7 +515,7 @@ func TestFrame(t *testing.T) {
 
 		err = iter_v.Print(outputSelect)
 		require.NoError(t, err)
-		compareResult(2)
+		compareResult(21)
 
 		estimatedData = fmt.Sprintf(mask3, id)
 		esimatedDataPtr = &estimatedData
@@ -540,7 +546,7 @@ func TestFrame(t *testing.T) {
 
 		err = iter_v1.Print(outputSelect)
 		require.NoError(t, err)
-		compareResult(6)
+		compareResult(22)
 
 		pos = 7
 		for {
@@ -564,7 +570,7 @@ func TestFrame(t *testing.T) {
 
 		err = iter_v2.Print(outputSelect)
 		require.NoError(t, err)
-		compareResult(11)
+		compareResult(23)
 
 		pos = 12
 		for {
@@ -582,7 +588,7 @@ func TestFrame(t *testing.T) {
 			}
 		}
 
-		require.True(t, false)
+		require.True(t, true)
 	})
 
 	t.Run("relations_load", func(t *testing.T) {
@@ -645,12 +651,10 @@ func TestFrame(t *testing.T) {
 			fd := fe.GetFrameDict()
 			for k, v := range fd {
 				fmt.Printf("key %v len v %v\r\n", k, len(v))
-				/*
-					for i, _ := range v {
-						f := v[i]
-						f.Print(true)
-					}
-				*/
+				for i, _ := range v {
+					f := v[i]
+					f.Print(output, true)
+				}
 			}
 		}
 		// тесты для запросов
@@ -661,7 +665,7 @@ func TestFrame(t *testing.T) {
 			{
 				ObjectType: "relation",
 				Object:     "наименование",
-				Value:      frl.CreateValue("отношение_предикат сравнения"),
+				Value:      frl.CreateValue("отношение_предикат_сравнения"),
 			},
 			{
 				ObjectType: "relation",
@@ -684,7 +688,7 @@ func TestFrame(t *testing.T) {
 		qri1 := frl.QueryRelationItem{
 			ObjectType: "relation",
 			Object:     "наименование",
-			Value:      frl.CreateValue("отношение_предикат сравнения"),
+			Value:      frl.CreateValue("отношение_предикат_сравнения"),
 		}
 		ff, err := ns.Find(&qri1)
 		require.NoError(t, err)
@@ -694,35 +698,39 @@ func TestFrame(t *testing.T) {
 				break
 			}
 			fmt.Printf("frame_id %v, slot_name %v, slot_property %v, slot_value %v\r\n", frameId, slotName, slotProperty, slotValue)
-			require.Equal(t, "наименование", slotName)
-			require.Equal(t, "отношение_предикат сравнения", slotValue)
+			require.Equal(t, "наименование", slotName.String())
+			require.Equal(t, "отношение_предикат_сравнения", slotValue.String())
 		}
-		require.True(t, false)
+		require.True(t, true)
 	})
+	require.NoError(t, os.RemoveAll("./Frames"))
 }
 
 func TestTranslatorExec(t *testing.T) {
 	debug.NewDebug()
 	path := "../../data/scripts/lang/"
 
-	files := []string{
-		"test_вложенный_для_каждого.frm",
-		"test_встроенных_функций.frm",
-		"test_вызов_функции.frm",
-		"test_вызов_функции_с_возвратом.frm",
-		"test_для_каждого.frm",
-		"test_если.frm",
-		//		"test_нагрузочный.frm",
-		//		"test_нагрузочный_памяти.frm",
-		"test_пока.frm",
-		"test_пока_вложенный.frm",
-		"test_потока.frm",
-		"test_потока_full.frm",
-		"test_присваивание_константы_в_переменную.frm",
-		"test_присваивание_константы_поиск_фрейма_в_переменную.frm",
-		"test_присваивание_списка_в_переменную.frm",
-		"test_форматировать.frm",
-		"test_фрейм.frm",
+	files := []struct {
+		fileName string
+		debug    int
+	}{
+		{fileName: "test_вложенный_для_каждого.frm", debug: 0},
+		{fileName: "test_встроенных_функций.frm", debug: 0},
+		{fileName: "test_вызов_функции.frm", debug: 0},
+		{fileName: "test_вызов_функции_с_возвратом.frm", debug: 0},
+		{fileName: "test_для_каждого.frm", debug: 0},
+		{fileName: "test_если.frm", debug: 0},
+		//		{fileName: "test_нагрузочный.frm", debug: 0},
+		//		{fileName: "test_нагрузочный_памяти.frm", debug: 0},
+		{fileName: "test_пока.frm", debug: 0},
+		{fileName: "test_пока_вложенный.frm", debug: 0},
+		{fileName: "test_потока.frm", debug: 0},
+		{fileName: "test_потока_full.frm", debug: 0},
+		{fileName: "test_присваивание_константы_в_переменную.frm", debug: 0},
+		{fileName: "test_присваивание_константы_поиск_фрейма_в_переменную.frm", debug: 0},
+		{fileName: "test_присваивание_списка_в_переменную.frm", debug: 0},
+		{fileName: "test_форматировать.frm", debug: 0},
+		{fileName: "test_фрейм.frm", debug: 0},
 	}
 	printFunc := func(frm string, args ...any) {
 		fmt.Printf(frm, args...)
@@ -733,11 +741,12 @@ func TestTranslatorExec(t *testing.T) {
 	}
 	outputTranslate := print.NewOutput(translatePrintFunc)
 	for _, fileIn := range files {
-		fmt.Printf("file_in %v\r\n", path+fileIn)
-		t.Run("exec "+fileIn, func(t *testing.T) {
+		fmt.Printf("file_in %v\r\n", path+fileIn.fileName)
+		t.Run("exec_"+fileIn.fileName, func(t *testing.T) {
 			eb := exec.InitExecutorBase(0, output)
-			e := exec.InitExecutor(eb, output, outputTranslate, 0)
-			err := e.Exec(path+fileIn, "пример1", "1", "2")
+			extFunctions := make(map[string]func(args []*frl.Value) ([]*frl.Value, bool, error))
+			e := exec.InitExecutor(eb, extFunctions, output, outputTranslate, fileIn.debug)
+			err := e.Exec(path+fileIn.fileName, "пример1", "1", "2")
 			require.NoError(t, err)
 		})
 	}
@@ -763,7 +772,8 @@ func TestTranslatorExecBad(t *testing.T) {
 		fmt.Printf("file_in %v\r\n", path+fileIn)
 		t.Run("exec "+fileIn, func(t *testing.T) {
 			eb := exec.InitExecutorBase(0, output)
-			e := exec.InitExecutor(eb, output, outputTranslate, 0)
+			extFunctions := make(map[string]func(args []*frl.Value) ([]*frl.Value, bool, error))
+			e := exec.InitExecutor(eb, extFunctions, output, outputTranslate, 0)
 			err := e.Exec(path+fileIn, "пример1", "1", "2")
 			//require.NoError(t, err)
 			require.ErrorContains(t, err, "translate error")
@@ -792,7 +802,8 @@ func TestTranslatorExecLineNum(t *testing.T) {
 		fmt.Printf("file_in %v\r\n", path+fileIn)
 		t.Run("exec "+fileIn, func(t *testing.T) {
 			eb := exec.InitExecutorBase(0xff, output)
-			e := exec.InitExecutor(eb, output, outputTranslate, 0)
+			extFunctions := make(map[string]func(args []*frl.Value) ([]*frl.Value, bool, error))
+			e := exec.InitExecutor(eb, extFunctions, output, outputTranslate, 0)
 			err := e.Exec(path+fileIn, "пример1", "1", "2")
 			require.NoError(t, err)
 		})
@@ -810,6 +821,7 @@ func TestStore(t *testing.T) {
 	fe := frl.NewFrameEnvironment()
 	//fe.FrameDict = make(map[string][]*frl.Frame)
 
+	require.NoError(t, os.RemoveAll("./Frames"))
 	// заполняем
 	ns, err := frl.NewStore("./Frames", output)
 	require.NoError(t, err)
@@ -835,7 +847,6 @@ func TestStore(t *testing.T) {
 			fmt.Printf("%v\r\n", r[i])
 			for j := range r[i].RelationItem {
 				fmt.Printf("\t%v\r\n", r[i].RelationItem[j])
-
 			}
 		}
 	}

@@ -15,6 +15,16 @@ type Function struct {
 	NumArgs   int
 	Operators []*ops.Operator
 	FileName  string
+	Package   string
+}
+
+// внешняя функция
+type ExternalFunction struct {
+	Name    string
+	Alias   string
+	Func    func(args []interface{}) ([]interface{}, bool, error)
+	NumArgs int
+	Args    []string
 }
 
 type Method struct {
