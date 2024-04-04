@@ -8,15 +8,13 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/wanderer69/debug"
 
+	print "github.com/wanderer69/tools/parser/print"
+	uqe "github.com/wanderer69/tools/unique"
+
 	"github.com/wanderer69/FrL/internal/addons/convertor"
 	exec "github.com/wanderer69/FrL/public/executor"
 	fnc "github.com/wanderer69/FrL/public/functions"
 	frl "github.com/wanderer69/FrL/public/lib"
-
-	//	uqe "github.com/wanderer69/FrL/src/lib/unique"
-	uqe "github.com/wanderer69/tools/unique"
-
-	print "github.com/wanderer69/tools/parser/print"
 )
 
 func TestFrame(t *testing.T) {
@@ -228,7 +226,6 @@ func TestFrame(t *testing.T) {
 
 		// настраиваем окружение
 		fe := frl.NewFrameEnvironment()
-		//fe.FrameDict = make(map[string][]*frl.Frame)
 
 		// добавляем фрейм с отношением "имя"
 		// надо добавить фрейм с определением отношения
@@ -358,45 +355,35 @@ func TestFrame(t *testing.T) {
 		require.True(t, err)
 		require.Equal(t, 1, v.Int())
 
-		//		fmt.Printf("v %v, err %v\r\n", v, err)
 		v, err = frl.ToType(1)
 		require.True(t, err)
 		require.Equal(t, 2, v.Int())
 
-		//		fmt.Printf("v %v, err %v\r\n", v, err)
 		v, err = frl.ToType(1.1)
 		require.True(t, err)
 		require.Equal(t, 3, v.Int())
 
-		//		fmt.Printf("v %v, err %v\r\n", v, err)
 		v, err = frl.ToType("qwert")
 		require.True(t, err)
 		require.Equal(t, 4, v.Int())
 
-		//		fmt.Printf("v %v, err %v\r\n", v, err)
 		v, err = frl.ToType(frl.NewFrame())
 		require.True(t, err)
 		require.Equal(t, 5, v.Int())
-
-		//		fmt.Printf("v %v, err %v\r\n", v, err)
 
 		v, err = frl.ToType([]*frl.Value{frl.CreateValue("1"), frl.CreateValue("2"), frl.CreateValue("3")})
 		require.True(t, err)
 		require.Equal(t, 6, v.Int())
 
-		//		fmt.Printf("v %v, err %v\r\n", v, err)
-
 		vv := frl.CreateValue([]*frl.Value{frl.CreateValue("1"), frl.CreateValue("2"), frl.CreateValue("3")})
 		v1, err1 := frl.NewIterator(vv)
 		require.NoError(t, err1)
-		//		fmt.Printf("vl %v, err %v\r\n", v1, err1)
 
 		v, err = frl.ToType(v1)
 		require.True(t, err)
 		require.Equal(t, 7, v.Int())
 
 		v, err = frl.ToType(nil)
-		//		fmt.Printf("v %v, err %v\r\n", v, err)
 		require.True(t, err)
 		require.Equal(t, 0, v.Int())
 
@@ -727,6 +714,7 @@ func TestTranslatorExec(t *testing.T) {
 		{fileName: "test_потока.frm", debug: 0},
 		{fileName: "test_потока_full.frm", debug: 0},
 		{fileName: "test_присваивание_константы_в_переменную.frm", debug: 0},
+
 		{fileName: "test_присваивание_константы_поиск_фрейма_в_переменную.frm", debug: 0},
 		{fileName: "test_присваивание_списка_в_переменную.frm", debug: 0},
 		{fileName: "test_форматировать.frm", debug: 0},
@@ -982,7 +970,6 @@ func TestStore(t *testing.T) {
 	}
 
 	// проверяем
-
 	if true {
 		ns, err := frl.NewStore("./Frames", output)
 		require.NoError(t, err)
@@ -996,7 +983,6 @@ func TestStore(t *testing.T) {
 			if err != nil {
 				break
 			}
-			//fmt.Printf("fi %v\r\n", fi )
 			// find frame by id
 			var f *frl.Frame
 
@@ -1004,7 +990,6 @@ func TestStore(t *testing.T) {
 			if err != nil {
 				fmt.Printf("err %v\r\n", err)
 			}
-			// fmt.Printf("fl %v\r\n", fl)
 			if len(fl) == 0 {
 				f = frl.NewFrame()
 				// добавляем поле уникального идентификатора

@@ -2155,7 +2155,7 @@ func fFindWithAssignment(pi parser.ParseItem, env *parser.Env, level int) (strin
 	case 0:
 		// поиск
 		s1 := pi.Items[0].Data
-		s2 := pi.Items[2].Data
+		s2 := pi.Items[3].Data
 		result = fmt.Sprintf("(%v = find_frame_with_assignment %v)", s2, s1)
 		env.CE.State = 1000
 
@@ -2353,6 +2353,106 @@ func fFindAndAdd(pi parser.ParseItem, env *parser.Env, level int) (string, error
 		op2 := &ops.Operator{}
 		op2.Code = ops.OpName2Code("add_slots")
 		sa = strings.Split(s2, ",")
+		for i := range sa {
+			arg := strings.Trim(sa[i], " ")
+			a, err := ParseArg(arg)
+			if err != nil {
+				return "", err
+			}
+			op2.Attributes = append(op2.Attributes, a)
+		}
+
+		if rp.StackPos >= 0 {
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op2)
+		} else {
+			rp.Operators = append(rp.Operators, op2)
+		}
+
+		env.Struct = rp
+	}
+	return result, nil
+}
+
+func fAddToVariable(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
+	result := ""
+	switch env.CE.State {
+	case 0:
+		// просто список слотов с переменными
+		s1 := pi.Items[0].Data
+		s2 := pi.Items[3].Data
+		result = fmt.Sprintf("(%v = f_add_to_var %v)", s2, s1)
+		env.CE.State = 1000
+
+		rp := env.Struct.(FrameParser)
+
+		op_l := &ops.Operator{}
+		op_l.Code = ops.OpName2Code("line")
+		a_l := &attr.Attribute{Type: attr.AttrTNumber, Number: pi.Items[0].LineNumBegin}
+		//env.Output.Print("pi.Items[0].LineNumBegin %v", pi.Items[0].LineNumBegin)
+		op_l.Attributes = append(op_l.Attributes, a_l)
+
+		if rp.StackPos >= 0 {
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op_l)
+		} else {
+			rp.Operators = append(rp.Operators, op_l)
+		}
+
+		op_d := &ops.Operator{}
+		op_d.Code = ops.OpName2Code("debug")
+		a1_d, err := ParseArg("text")
+		if err != nil {
+			return "", err
+		}
+		op_d.Attributes = append(op_d.Attributes, a1_d)
+		a2_d, err := ParseArg(result)
+		if err != nil {
+			return "", err
+		}
+		op_d.Attributes = append(op_d.Attributes, a2_d)
+
+		if rp.StackPos >= 0 {
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op_d)
+		} else {
+			rp.Operators = append(rp.Operators, op_d)
+		}
+
+		// получаем значение переменной
+		op1 := &ops.Operator{}
+		a, err := ParseArg(s2)
+		if err != nil {
+			return "", err
+		}
+
+		t, _, array := attr.GetAttribute(a)
+		switch t {
+		case attr.AttrTConst:
+			// ошибка, не может быть!
+			return "", fmt.Errorf("must be variable")
+		case attr.AttrTArray:
+			if len(array) == 2 {
+				if array[0] == "?" {
+					op1.Code = ops.OpName2Code("get")
+				} else {
+					// ошибка! не может быть!
+					return "", fmt.Errorf("must be variable")
+				}
+			} else {
+				// ошибка! не может быть!
+				return "", fmt.Errorf("must be variable")
+			}
+			op1.Attributes = append(op1.Attributes, a)
+		}
+
+		if rp.StackPos >= 0 {
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op1)
+		} else {
+			rp.Operators = append(rp.Operators, op1)
+		}
+
+		// в стеке то к чему надо добавить
+		op2 := &ops.Operator{}
+		op2.Code = ops.OpName2Code("add_slots")
+		sa := strings.Split(s1, ",")
 		for i := range sa {
 			arg := strings.Trim(sa[i], " ")
 			a, err := ParseArg(arg)
@@ -2921,11 +3021,20 @@ func MakeRules(env *parser.Env) {
 		"продолжить", "присвоить", "фрейм присвоить переменной", "присвоить_список",
 		"вызов функции с присваиванием", "вызов метода с присваиванием", "пока",
 		"вызов функции с присваиванием нескольких значений",
+		"добавление слотов в фрейм который в переменной",
+		"если en", "для каждого элемента en", "пока en", "прервать en",
+		"продолжить en",
 	}
 
 	//<symbols, == отношения> <{, > - добавление отношений во фреймы
 	gr := parser.MakeRule("добавление отношений во фреймы", env)
 	gr.AddItemToRule("symbols", "", 1, "отношения", "", []string{}, env)
+	gr.AddItemToRule("{", "", 0, "", ";", []string{"отношение"}, env)
+	gr.AddRuleHandler(fRelations, env)
+
+	//<symbols, == отношения> <{, > - добавление отношений во фреймы
+	gr = parser.MakeRule("добавление отношений во фреймы en", env)
+	gr.AddItemToRule("symbols", "", 1, "relations", "", []string{}, env)
 	gr.AddItemToRule("{", "", 0, "", ";", []string{"отношение"}, env)
 	gr.AddRuleHandler(fRelations, env)
 
@@ -2942,9 +3051,21 @@ func MakeRules(env *parser.Env) {
 	gr.AddItemToRule("{", "", 0, "", ";", []string{"определение фреймА"}, env)
 	gr.AddRuleHandler(fFrames, env)
 
+	//<symbols, == фреймы> <{, > - определение фреймов
+	gr = parser.MakeRule("определение фреймов en", env)
+	gr.AddItemToRule("symbols", "", 1, "frames", "", []string{}, env)
+	gr.AddItemToRule("{", "", 0, "", ";", []string{"определение фреймА"}, env)
+	gr.AddRuleHandler(fFrames, env)
+
 	//<symbols, == фрейм> <(, > - определение фреймА, после ключевого слова идет список
 	gr = parser.MakeRule("определение фреймА", env)
 	gr.AddItemToRule("symbols", "", 1, "фрейм", "", []string{}, env)
+	gr.AddItemToRule("(", "", 0, "", ";", []string{"список_аргументов"}, env) // , "список"
+	gr.AddRuleHandler(fFrame, env)
+
+	//<symbols, == фрейм> <(, > - определение фреймА, после ключевого слова идет список
+	gr = parser.MakeRule("определение фреймА en", env)
+	gr.AddItemToRule("symbols", "", 1, "frame", "", []string{}, env)
 	gr.AddItemToRule("(", "", 0, "", ";", []string{"список_аргументов"}, env) // , "список"
 	gr.AddRuleHandler(fFrame, env)
 
@@ -2956,24 +3077,42 @@ func MakeRules(env *parser.Env) {
 	gr.AddItemToRule("symbols", "[0]", 1, "?", ";", []string{}, env)
 	gr.AddRuleHandler(fFrameWithAssignment, env)
 
-	//<(, > <symbols, == : > <?, > <(, > - поиск фрейма либо фреймов и добавление слотов и значений
+	//<symbols, == фрейм> <(, > - определение фреймА, после ключевого слова идет список
+	gr = parser.MakeRule("фрейм присвоить переменной en", env)
+	gr.AddItemToRule("symbols", "", 1, "frame", "", []string{}, env)
+	gr.AddItemToRule("(", "", 0, "", "", []string{"список_аргументов"}, env) // , "список"
+	gr.AddItemToRule("symbols", "", 1, "=>", "", []string{}, env)
+	gr.AddItemToRule("symbols", "[0]", 1, "?", ";", []string{}, env)
+	gr.AddRuleHandler(fFrameWithAssignment, env)
+
+	//<(, > <symbols, == : >  <(, > - поиск фрейма либо фреймов и добавление слотов и значений
 	gr = parser.MakeRule("добавление слотов в результататы поиска", env)
 	gr.AddItemToRule("(", "", 0, "", "", []string{"список_аргументов"}, env)
 	gr.AddItemToRule("symbols", "", 1, ":", "", []string{}, env)
 	gr.AddItemToRule("(", "", 0, "", ";", []string{"список_аргументов"}, env)
 	gr.AddRuleHandler(fFindAndAdd, env)
 
+	//<(, > <symbols, == : > <(, > - добавление слотов и значений в переменную
+	gr = parser.MakeRule("добавление слотов в фрейм который в переменной", env)
+	gr.AddItemToRule("(", "", 0, "", "", []string{"список_аргументов"}, env)
+	gr.AddItemToRule("symbols", "", 1, ":", "", []string{}, env)
+	//gr.AddItemToRule("(", "", 0, "", ";", []string{"список_аргументов"}, env)
+	gr.AddItemToRule("symbols", "", 1, "=>", "", []string{}, env)
+	gr.AddItemToRule("symbols", "[0]", 1, "?", ";", []string{}, env)
+	gr.AddRuleHandler(fAddToVariable, env)
+
 	//<(, > <symbols, == => > <?, > <symbols,> - присваивание результатат поиска критерии поиска задаются либо списком слотов и значений либо списком объявлений слотов и значений
 	gr = parser.MakeRule("присваивание результатат поиска", env)
 	gr.AddItemToRule("(", "", 0, "", "", []string{"список_аргументов"}, env)
+	gr.AddItemToRule("symbols", "", 1, "?", "", []string{}, env)
 	gr.AddItemToRule("symbols", "", 1, "=>", "", []string{}, env)
 	gr.AddItemToRule("symbols", "[0]", 1, "?", ";", []string{}, env)
 	gr.AddRuleHandler(fFindWithAssignment, env)
 
-	//<(, > <symbols, == ?> <symbols,> <symbols, == => > <symbols, == ?> <symbols,> - унификация (сущность.объект)?элемент-класс
+	//<(, > <symbols, == ?> <symbols,> <symbols, == => > <symbols, == ?> <symbols,> - унификация (сущность.объект)!(сущность.?переменная)
 	gr = parser.MakeRule("унификация", env)
 	gr.AddItemToRule("(", "", 0, "", "", []string{"список_аргументов"}, env)
-	gr.AddItemToRule("symbols", "", 1, "?", "", []string{}, env)
+	gr.AddItemToRule("symbols", "", 1, "!", "", []string{}, env)
 	gr.AddItemToRule("symbols", "", 0, "", "", []string{}, env)
 	gr.AddItemToRule("symbols", "", 1, "=>", "", []string{}, env)
 	gr.AddItemToRule("symbols", "", 0, "", ";", []string{}, env)
@@ -2982,6 +3121,13 @@ func MakeRules(env *parser.Env) {
 	//<symbols, == если> <(, >  <{, > - если
 	gr = parser.MakeRule("если", env)
 	gr.AddItemToRule("symbols", "", 1, "если", "", []string{}, env)
+	gr.AddItemToRule("(", "", 0, "", "", []string{"условие1", "условие2", "условие3"}, env)
+	gr.AddItemToRule("{", "", 0, "", ";", items, env)
+	gr.AddRuleHandler(fIf, env)
+
+	//<symbols, == если> <(, >  <{, > - если
+	gr = parser.MakeRule("если en", env)
+	gr.AddItemToRule("symbols", "", 1, "if", "", []string{}, env)
 	gr.AddItemToRule("(", "", 0, "", "", []string{"условие1", "условие2", "условие3"}, env)
 	gr.AddItemToRule("{", "", 0, "", ";", items, env)
 	gr.AddRuleHandler(fIf, env)
@@ -2997,6 +3143,17 @@ func MakeRules(env *parser.Env) {
 	gr.AddItemToRule("{", "", 0, "", ";", items, env)
 	gr.AddRuleHandler(fForEach, env)
 
+	//<symbols, == для> <symbols, == каждого> <(, >  <symbols, == => > <symbols, == ?> <symbols,> <{, > - цикл для каждого фрейма
+	gr = parser.MakeRule("для каждого элемента en", env)
+	gr.AddItemToRule("symbols", "", 1, "for", "", []string{}, env)
+	gr.AddItemToRule("symbols", "", 1, "each", "", []string{}, env)
+	gr.AddItemToRule("symbols", "", 1, "element", "", []string{}, env)
+	gr.AddItemToRule("(", "", 0, "", "", []string{}, env) // "переменная", "вызов функции", "константа" // "список_аргументов"
+	gr.AddItemToRule("symbols", "", 1, "=>", "", []string{}, env)
+	gr.AddItemToRule("symbols", "", 0, "", "", []string{}, env)
+	gr.AddItemToRule("{", "", 0, "", ";", items, env)
+	gr.AddRuleHandler(fForEach, env)
+
 	//<symbols, == пока> <(, >  <symbols, == => > <symbols, == ?> <symbols,> <{, > - цикл для каждого фрейма
 	gr = parser.MakeRule("пока", env)
 	gr.AddItemToRule("symbols", "", 1, "пока", "", []string{}, env)
@@ -3004,9 +3161,24 @@ func MakeRules(env *parser.Env) {
 	gr.AddItemToRule("{", "", 0, "", ";", items, env)
 	gr.AddRuleHandler(fWhile, env)
 
+	//<symbols, == пока> <(, >  <symbols, == => > <symbols, == ?> <symbols,> <{, > - цикл для каждого фрейма
+	gr = parser.MakeRule("пока en", env)
+	gr.AddItemToRule("symbols", "", 1, "while", "", []string{}, env)
+	gr.AddItemToRule("(", "", 0, "", "", []string{"условие1", "условие2", "условие3"}, env) // "переменная", "вызов функции", "константа" // "список_аргументов"
+	gr.AddItemToRule("{", "", 0, "", ";", items, env)
+	gr.AddRuleHandler(fWhile, env)
+
 	//<symbols, == @> <symbols, > <(, > <{, > -  определение метода
 	gr = parser.MakeRule("определение функции", env)
 	gr.AddItemToRule("symbols", "", 1, "функция", "", []string{}, env)
+	gr.AddItemToRule("symbols", "", 0, "", "", []string{}, env)
+	gr.AddItemToRule("(", "", 0, "", "", []string{}, env)
+	gr.AddItemToRule("{", "", 0, "", ";", items, env)
+	gr.AddRuleHandler(fFunction, env)
+
+	//<symbols, == @> <symbols, > <(, > <{, > -  определение метода
+	gr = parser.MakeRule("определение функции en", env)
+	gr.AddItemToRule("symbols", "", 1, "function", "", []string{}, env)
 	gr.AddItemToRule("symbols", "", 0, "", "", []string{}, env)
 	gr.AddItemToRule("(", "", 0, "", "", []string{}, env)
 	gr.AddItemToRule("{", "", 0, "", ";", items, env)
@@ -3021,9 +3193,24 @@ func MakeRules(env *parser.Env) {
 	gr.AddItemToRule("{", "", 0, "", ";", items, env)
 	gr.AddRuleHandler(fMethod, env)
 
+	//<symbols, == @> <symbols, > <(, > <{, > -  определение метода
+	gr = parser.MakeRule("определение метода en", env)
+	gr.AddItemToRule("symbols", "", 1, "method", "", []string{}, env)
+	gr.AddItemToRule("symbols", "", 0, "", "", []string{}, env)
+	gr.AddItemToRule("symbols", "", 0, "", "", []string{}, env)
+	gr.AddItemToRule("(", "", 0, "", "", []string{}, env)
+	gr.AddItemToRule("{", "", 0, "", ";", items, env)
+	gr.AddRuleHandler(fMethod, env)
+
 	//<symbols, > <(, > - вернуть
 	gr = parser.MakeRule("вернуть", env)
 	gr.AddItemToRule("symbols", "", 1, "вернуть", "", []string{}, env)
+	gr.AddItemToRule("(", "", 0, "", ";", []string{}, env)
+	gr.AddRuleHandler(fReturn, env)
+
+	//<symbols, > <(, > - вернуть
+	gr = parser.MakeRule("вернуть en", env)
+	gr.AddItemToRule("symbols", "", 1, "return", "", []string{}, env)
 	gr.AddItemToRule("(", "", 0, "", ";", []string{}, env)
 	gr.AddRuleHandler(fReturn, env)
 
@@ -3068,9 +3255,19 @@ func MakeRules(env *parser.Env) {
 	gr.AddItemToRule("symbols", "", 1, "прервать", "", []string{}, env)
 	gr.AddRuleHandler(fBreak, env)
 
+	//<symbols, == прервать> - прервать выполнение
+	gr = parser.MakeRule("прервать en", env)
+	gr.AddItemToRule("symbols", "", 1, "break", "", []string{}, env)
+	gr.AddRuleHandler(fBreak, env)
+
 	//<symbols, == продолжить> - продолжить выполнение пропустив часть блока
 	gr = parser.MakeRule("продолжить", env)
 	gr.AddItemToRule("symbols", "", 1, "продолжить", "", []string{}, env)
+	gr.AddRuleHandler(fContinue, env)
+
+	//<symbols, == продолжить> - продолжить выполнение пропустив часть блока
+	gr = parser.MakeRule("продолжить en", env)
+	gr.AddItemToRule("symbols", "", 1, "continue", "", []string{}, env)
 	gr.AddRuleHandler(fContinue, env)
 
 	//<string, > <symbols, == => > <symbols,> - константу строку в переменную
@@ -3117,9 +3314,24 @@ func MakeRules(env *parser.Env) {
 	gr.AddItemToRule("symbols", "", 0, "", ";", []string{}, env)
 	gr.AddRuleHandler(fConnectExternalFunction, env)
 
+	//<symbols, == подключить> <symbols, > <symbols, > <(, > <symbols, == как> <symbols, > - подключение внешней функции как
+	gr = parser.MakeRule("подключение внешней функции как en", env)
+	gr.AddItemToRule("symbols", "", 1, "connect", "", []string{}, env)
+	gr.AddItemToRule("symbols", "", 0, "", "", []string{}, env)
+	gr.AddItemToRule("(", "", 0, "", "", []string{}, env)
+	gr.AddItemToRule("symbols", "", 1, "as", "", []string{}, env)
+	gr.AddItemToRule("symbols", "", 0, "", ";", []string{}, env)
+	gr.AddRuleHandler(fConnectExternalFunction, env)
+
 	//<symbols, == пакет> - определение пакета
 	gr = parser.MakeRule("пакет", env)
 	gr.AddItemToRule("symbols", "", 1, "пакет", "", []string{}, env)
+	gr.AddItemToRule("symbols", "", 0, "", "", []string{}, env)
+	gr.AddRuleHandler(fPackage, env)
+
+	//<symbols, == пакет> - определение пакета
+	gr = parser.MakeRule("пакет en", env)
+	gr.AddItemToRule("symbols", "", 1, "package", "", []string{}, env)
 	gr.AddItemToRule("symbols", "", 0, "", "", []string{}, env)
 	gr.AddRuleHandler(fPackage, env)
 
@@ -3141,13 +3353,7 @@ func MakeRules(env *parser.Env) {
 	gr.AddItemToRule("symbols", "", 0, "?", "", []string{}, env)
 	gr.AddItemToRule("symbols", "", 0, "", "", []string{}, env)
 	gr.AddRuleHandler(fVariable, env)
-	/*
-		//<symbols, > <(, > - вызов функции
-		gr = parser.MakeRule("вызов функции", env)
-		gr.AddItemToRule("symbols", "", 0, "", "", []string{}, env)
-		gr.AddItemToRule("(", "", 0, "", "", []string{}, env)
-		gr.AddRuleHandler(f_call_function, env)
-	*/
+
 	// <string, > - просто строка
 	gr = parser.MakeRule("константа", env)
 	gr.AddItemToRule("symbols|string", "", 0, "", "", []string{}, env)
@@ -3169,7 +3375,10 @@ func MakeRules(env *parser.Env) {
 	gr.AddItemToRule("symbols", "", 0, "", "", []string{}, env)
 
 	high_level_array := []string{"добавление отношений во фреймы", "определение фреймов", "определение функции",
-		"определение метода", "подключение внешней функции как", "пакет"}
+		"определение метода", "подключение внешней функции как", "пакет", "добавление отношений во фреймы en",
+		"определение фреймов en", "определение функции en",
+		"определение метода en", "подключение внешней функции как en", "пакет en",
+	}
 
 	expr_array := []string{"атрибут переменной", "строка", "символ"}
 
