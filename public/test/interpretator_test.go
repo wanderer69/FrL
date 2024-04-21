@@ -578,6 +578,8 @@ func TestFrame(t *testing.T) {
 		require.True(t, true)
 	})
 
+	frameIDs := []*frl.Value{}
+
 	t.Run("relations_load", func(t *testing.T) {
 		// настраиваем окружение
 		fe := frl.NewFrameEnvironment()
@@ -677,7 +679,7 @@ func TestFrame(t *testing.T) {
 			Object:     "наименование",
 			Value:      frl.CreateValue("отношение_предикат_сравнения"),
 		}
-		ff, err := ns.Find(&qri1)
+		ff, err := ns.FindShort(&qri1)
 		require.NoError(t, err)
 		for {
 			frameId, slotName, slotProperty, slotValue, err := ff()
@@ -685,11 +687,109 @@ func TestFrame(t *testing.T) {
 				break
 			}
 			fmt.Printf("frame_id %v, slot_name %v, slot_property %v, slot_value %v\r\n", frameId, slotName, slotProperty, slotValue)
-			require.Equal(t, "наименование", slotName.String())
+			require.Equal(t, "наименование", slotName)
 			require.Equal(t, "отношение_предикат_сравнения", slotValue.String())
+			frameIDs = append(frameIDs, frameId)
+		}
+		require.Len(t, frameIDs, 1)
+		require.True(t, true)
+	})
+
+	t.Run("relations_load_1", func(t *testing.T) {
+		// настраиваем окружение
+		//fe := frl.NewFrameEnvironment()
+		//fe.FrameDict = make(map[string][]*frl.Frame)
+
+		ns, err := frl.NewStore("./Frames", output)
+		require.NoError(t, err)
+
+		for i := range frameIDs {
+			fn, err := ns.FindShort(&frl.QueryRelationItem{ObjectType: "frame", Value: frameIDs[i]})
+			require.NoError(t, err)
+			var f *frl.Frame
+			for {
+				frameId, slotName, slotProperty, slotValue, err := fn()
+				if err != nil {
+					break
+				}
+				if f == nil {
+					f = frl.NewFrame()
+					// добавляем поле уникального идентификатора
+					id := "ID"
+					err = f.AddSlot(id)
+					require.NoError(t, err)
+					_, err := f.SetValue(id, frameId)
+					require.NoError(t, err)
+					continue
+				}
+				err = f.AddSlot(slotName)
+				require.NoError(t, err)
+				err = f.SetSlotProperty(slotName, slotProperty)
+				require.NoError(t, err)
+				_, err = f.SetValue(slotName, slotValue)
+				require.NoError(t, err)
+			}
 		}
 		require.True(t, true)
 	})
+
+	t.Run("relations_load_2", func(t *testing.T) {
+		// настраиваем окружение
+		//fe := frl.NewFrameEnvironment()
+		//fe.FrameDict = make(map[string][]*frl.Frame)
+
+		ns, err := frl.NewStore("./Frames", output)
+		require.NoError(t, err)
+
+		template := frl.NewFrame()
+		err = template.AddSlot("наименование")
+		require.NoError(t, err)
+		//err = f.SetSlotProperty(slotName, slotProperty)
+		//require.NoError(t, err)
+		/*
+			slotValue := frl.CreateValue("отношение_предикат_сравнения")
+			_, err = template.SetValue("наименование", slotValue)
+			require.NoError(t, err)
+		*/
+		fn, err := ns.FindByTemplate(template)
+		require.NoError(t, err)
+		fs := []*frl.Frame{}
+		var f *frl.Frame
+		currentFrameID := ""
+		for {
+			frameId, slotName, slotProperty, slotValue, err := fn()
+			if err != nil {
+				break
+			}
+			if currentFrameID != frameId.String() && f != nil {
+				fs = append(fs, f)
+				f = nil
+			}
+			if f == nil {
+				f = frl.NewFrame()
+				// добавляем поле уникального идентификатора
+				id := "ID"
+				err = f.AddSlot(id)
+				require.NoError(t, err)
+				_, err := f.SetValue(id, frameId)
+				require.NoError(t, err)
+				currentFrameID = frameId.String()
+				//continue
+			}
+			err = f.AddSlot(slotName)
+			require.NoError(t, err)
+			err = f.SetSlotProperty(slotName, slotProperty)
+			require.NoError(t, err)
+			_, err = f.SetValue(slotName, slotValue)
+			require.NoError(t, err)
+		}
+		if f != nil {
+			fs = append(fs, f)
+		}
+		require.Len(t, fs, 133)
+		require.True(t, true)
+	})
+
 	require.NoError(t, os.RemoveAll("./Frames"))
 }
 

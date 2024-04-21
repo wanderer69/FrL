@@ -199,6 +199,12 @@ func ToType(value interface{}) (ValueType, bool) {
 					} else if sl[1] == "Function" {
 						typev = VtFunction
 						res = true
+					} else if sl[1] == "Map" {
+						typev = VtMap
+						res = true
+					} else if sl[1] == "DataBase" {
+						typev = VtDataBase
+						res = true
 					} else if sl[1] == "Value" {
 						typev = VtIterator
 						res = true

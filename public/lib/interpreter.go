@@ -1234,7 +1234,7 @@ func (ie *InterpreterEnv) InterpreterFuncStep( /* cf *ContextFunc */ ) (bool, er
 				return false, fmt.Errorf("array %v too long", array)
 			}
 		}
-	case ops.OpCfind_frame:
+	case ops.OpCfindFrame:
 		qria, r, err := createQria(op.Attributes)
 		if err != nil {
 			return r, err
@@ -1269,7 +1269,7 @@ func (ie *InterpreterEnv) InterpreterFuncStep( /* cf *ContextFunc */ ) (bool, er
 			push(v)
 		}
 
-	case ops.OpCadd_slots:
+	case ops.OpCaddSlots:
 		aria, r, err := createAria(op.Attributes)
 		if err != nil {
 			return r, err
@@ -1376,6 +1376,53 @@ func (ie *InterpreterEnv) InterpreterFuncStep( /* cf *ContextFunc */ ) (bool, er
 			v := CreateValue(f)
 			push(v)
 		}
+
+	case ops.OpCtemplate:
+		aria, r, err := createAria(op.Attributes)
+		if err != nil {
+			return r, err
+		}
+		if debug > 2 {
+			ie.Output.Print("aria %v\r\n", aria)
+		}
+		if ie.FE != nil {
+			f := NewFrame() //ie.FE.NewFrameWithRelation()
+			for i := range aria {
+				if aria[i].ObjectType == "relation" {
+					f.AddSlot(aria[i].Object)
+					if aria[i].Value != nil {
+						f.SetValue(aria[i].Object, aria[i].Value)
+					}
+				}
+			}
+			//ie.FE.AddRelations(f, aria...)
+			v := CreateValue(f)
+			push(v)
+		}
+
+	case ops.OpCfindSlot:
+		aria, r, err := createAria(op.Attributes)
+		if err != nil {
+			return r, err
+		}
+		if debug > 2 {
+			ie.Output.Print("aria %v\r\n", aria)
+		}
+		if ie.FE != nil {
+			f := ie.FE.NewFrameWithRelation()
+			for i := range aria {
+				if aria[i].ObjectType == "relation" {
+					f.AddSlot(aria[i].Object)
+					if aria[i].Value != nil {
+						f.SetValue(aria[i].Object, aria[i].Value)
+					}
+				}
+			}
+			ie.FE.AddRelations(f, aria...)
+			v := CreateValue(f)
+			push(v)
+		}
+
 	case ops.OpCunify:
 		for i := range op.Attributes {
 			if false {
@@ -1384,7 +1431,7 @@ func (ie *InterpreterEnv) InterpreterFuncStep( /* cf *ContextFunc */ ) (bool, er
 			}
 		}
 
-	case ops.OpCcreate_iterator:
+	case ops.OpCcreateIterator:
 		for i := range op.Attributes {
 			if false {
 				s := op.Attributes[i].Attribute2String()
@@ -1433,7 +1480,7 @@ func (ie *InterpreterEnv) InterpreterFuncStep( /* cf *ContextFunc */ ) (bool, er
 		}
 		// и кладем в стек
 		push(v)
-	case ops.OpCcheck_iteration:
+	case ops.OpCcheckIteration:
 		for i := range op.Attributes {
 			if false {
 				s := op.Attributes[i].Attribute2String()
@@ -1451,7 +1498,7 @@ func (ie *InterpreterEnv) InterpreterFuncStep( /* cf *ContextFunc */ ) (bool, er
 			return false, err1
 		}
 		push(bb)
-	case ops.OpCcall_function:
+	case ops.OpCcallFunction:
 		for i := range op.Attributes {
 			if false {
 				s := op.Attributes[i].Attribute2String()
@@ -1510,7 +1557,7 @@ func (ie *InterpreterEnv) InterpreterFuncStep( /* cf *ContextFunc */ ) (bool, er
 				}
 			}
 		}
-	case ops.OpCcall_method:
+	case ops.OpCcallMethod:
 		for i := range op.Attributes {
 			if false {
 				s := op.Attributes[i].Attribute2String()
@@ -1712,7 +1759,7 @@ func (ie *InterpreterEnv) InterpreterFuncStep( /* cf *ContextFunc */ ) (bool, er
 		// и кладем его в стек
 		push(vv)
 
-	case ops.OpCbranch_if_false:
+	case ops.OpCbranchIfFalse:
 		for i := range op.Attributes {
 			if false {
 				s := op.Attributes[i].Attribute2String()
@@ -1745,7 +1792,7 @@ func (ie *InterpreterEnv) InterpreterFuncStep( /* cf *ContextFunc */ ) (bool, er
 		} else {
 			return false, fmt.Errorf("branch_if_false: too more attributes %v", len(op.Attributes))
 		}
-	case ops.OpCbranch_if_true:
+	case ops.OpCbranchIfTrue:
 		for i := range op.Attributes {
 			if false {
 				s := op.Attributes[i].Attribute2String()

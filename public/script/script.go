@@ -2149,6 +2149,90 @@ func fFrameWithAssignment(pi parser.ParseItem, env *parser.Env, level int) (stri
 	return result, nil
 }
 
+func fTemplateWithAssignment(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
+	result := ""
+	switch env.CE.State {
+	case 0:
+		// Отношение
+		s := pi.Items[1].Data
+		s2 := pi.Items[3].Data
+		result = fmt.Sprintf("%v = template(%v)", s2, s)
+		env.CE.State = 1000
+
+		rp := env.Struct.(FrameParser)
+
+		op := &ops.Operator{}
+		op.Code = ops.OpName2Code("line")
+		a := &attr.Attribute{Type: attr.AttrTNumber, Number: pi.Items[0].LineNumBegin}
+		//env.Output.Print("pi.Items[0].LineNumBegin %v", pi.Items[0].LineNumBegin)
+		op.Attributes = append(op.Attributes, a)
+
+		if rp.StackPos >= 0 {
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op)
+		} else {
+			rp.Operators = append(rp.Operators, op)
+		}
+
+		op_d := &ops.Operator{}
+		op_d.Code = ops.OpName2Code("debug")
+		a1_d, err := ParseArg("text")
+		if err != nil {
+			return "", err
+		}
+		op_d.Attributes = append(op_d.Attributes, a1_d)
+		a2_d, err := ParseArg(result)
+		if err != nil {
+			return "", err
+		}
+		op_d.Attributes = append(op_d.Attributes, a2_d)
+
+		if rp.StackPos >= 0 {
+			rp.Stack[rp.StackPos].ExecOps = append([]*ops.Operator{op_d}, rp.Stack[rp.StackPos].ExecOps...)
+		} else {
+			rp.Operators = append([]*ops.Operator{op_d}, rp.Operators...)
+		}
+
+		op = &ops.Operator{}
+		op.Code = ops.OpName2Code("template")
+
+		sl := strings.Split(s, ",")
+		for i := range sl {
+			arg := strings.Trim(sl[i], " ")
+			a, err := ParseArg(arg)
+			if err != nil {
+				return "", err
+			}
+			op.Attributes = append(op.Attributes, a)
+		}
+
+		if rp.StackPos >= 0 {
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op)
+		} else {
+			rp.Operators = append(rp.Operators, op)
+		}
+
+		op2 := &ops.Operator{}
+		op2.Code = ops.OpName2Code("set")
+		sa := strings.Split(s2, ",")
+		for i := range sa {
+			arg := strings.Trim(sa[i], " ")
+			a, err := ParseArg(arg)
+			if err != nil {
+				return "", err
+			}
+			op2.Attributes = append(op2.Attributes, a)
+		}
+		if rp.StackPos >= 0 {
+			rp.Stack[rp.StackPos].ExecOps = append(rp.Stack[rp.StackPos].ExecOps, op2)
+		} else {
+			rp.Operators = append(rp.Operators, op2)
+		}
+
+		env.Struct = rp
+	}
+	return result, nil
+}
+
 func fFindWithAssignment(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 	result := ""
 	switch env.CE.State {
@@ -3023,7 +3107,7 @@ func MakeRules(env *parser.Env) {
 		"вызов функции с присваиванием нескольких значений",
 		"добавление слотов в фрейм который в переменной",
 		"если en", "для каждого элемента en", "пока en", "прервать en",
-		"продолжить en",
+		"продолжить en", "шаблон присвоить переменной", "шаблон присвоить переменной en",
 	}
 
 	//<symbols, == отношения> <{, > - добавление отношений во фреймы
@@ -3084,6 +3168,22 @@ func MakeRules(env *parser.Env) {
 	gr.AddItemToRule("symbols", "", 1, "=>", "", []string{}, env)
 	gr.AddItemToRule("symbols", "[0]", 1, "?", ";", []string{}, env)
 	gr.AddRuleHandler(fFrameWithAssignment, env)
+
+	//<symbols, == шаблон> <(, > - определение шаблона, после ключевого слова идет список
+	gr = parser.MakeRule("шаблон присвоить переменной", env)
+	gr.AddItemToRule("symbols", "", 1, "фрейм", "", []string{}, env)
+	gr.AddItemToRule("(", "", 0, "", "", []string{"список_аргументов"}, env) // , "список"
+	gr.AddItemToRule("symbols", "", 1, "=>", "", []string{}, env)
+	gr.AddItemToRule("symbols", "[0]", 1, "?", ";", []string{}, env)
+	gr.AddRuleHandler(fTemplateWithAssignment, env)
+
+	//<symbols, == template> <(, > - определение шаблона, после ключевого слова идет список
+	gr = parser.MakeRule("шаблон присвоить переменной en", env)
+	gr.AddItemToRule("symbols", "", 1, "template", "", []string{}, env)
+	gr.AddItemToRule("(", "", 0, "", "", []string{"список_аргументов"}, env) // , "список"
+	gr.AddItemToRule("symbols", "", 1, "=>", "", []string{}, env)
+	gr.AddItemToRule("symbols", "[0]", 1, "?", ";", []string{}, env)
+	gr.AddRuleHandler(fTemplateWithAssignment, env)
 
 	//<(, > <symbols, == : >  <(, > - поиск фрейма либо фреймов и добавление слотов и значений
 	gr = parser.MakeRule("добавление слотов в результататы поиска", env)

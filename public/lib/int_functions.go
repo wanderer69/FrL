@@ -1,5 +1,7 @@
 package frl
 
+import "fmt"
+
 //	"github.com/wanderer69/FrL/src/lib/common"
 
 // функции интерпретатора
@@ -851,6 +853,100 @@ func EvalString_internal(ie *InterpreterEnv, state int, if_ *InternalFunction, a
 			_, err := args[0].EvalString(ie)
 			// result = append(result, v)
 			return nil, nil, false, err
+		}
+	}
+	return nil, nil, false, nil
+}
+
+func OpenDataBase_internal(ie *InterpreterEnv, state int, if_ *InternalFunction, args []*Value) (*InternalFunction, []*Value, bool, error) {
+	// принцип аналогичен команде однако есть отличие так как вычисление идет в две итерации
+	// 0. регистрация
+	// 1. оценка и связывание аргументов
+	// 2. собственно вычисление
+	switch state {
+	case 0:
+		if_n := &InternalFunction{Name: "открыть_базу_данных"} // имя
+		return if_n, nil, false, nil
+	case 1:
+		if_n := &InternalFunction{NumArgs: 1} // принимает на вход список
+		return if_n, nil, false, nil
+	case 2:
+		if if_ != nil {
+			result := []*Value{}
+			if args[0].GetType() != VtString {
+				return nil, nil, false, fmt.Errorf("bad type database name %v", args[0].GetType())
+			}
+			pathToDB := args[0].String()
+
+			db := NewDataBase()
+			err := db.Connect(DataBaseTypeSimple, pathToDB, ie.Output)
+			if err != nil {
+				return nil, nil, false, err
+			}
+			v := CreateValue(db)
+			result = append(result, v)
+			return nil, result, true, nil
+		}
+	}
+	return nil, nil, false, nil
+}
+
+func CloseDataBase_internal(ie *InterpreterEnv, state int, if_ *InternalFunction, args []*Value) (*InternalFunction, []*Value, bool, error) {
+	// принцип аналогичен команде однако есть отличие так как вычисление идет в две итерации
+	// 0. регистрация
+	// 1. оценка и связывание аргументов
+	// 2. собственно вычисление
+	switch state {
+	case 0:
+		if_n := &InternalFunction{Name: "закрыть_базу_данных"} // имя
+		return if_n, nil, false, nil
+	case 1:
+		if_n := &InternalFunction{NumArgs: 1} // принимает на вход список
+		return if_n, nil, false, nil
+	case 2:
+		if if_ != nil {
+			//result := []*Value{}
+			if args[0].GetType() != VtDataBase {
+				return nil, nil, false, fmt.Errorf("must be type database, has %v", args[0].GetType())
+			}
+			db := args[0].DataBase()
+			db.Close()
+
+			//result = append(result, v)
+			return nil, nil, false, nil
+		}
+	}
+	return nil, nil, false, nil
+}
+
+func FindInDataBase_internal(ie *InterpreterEnv, state int, if_ *InternalFunction, args []*Value) (*InternalFunction, []*Value, bool, error) {
+	// принцип аналогичен команде однако есть отличие так как вычисление идет в две итерации
+	// 0. регистрация
+	// 1. оценка и связывание аргументов
+	// 2. собственно вычисление
+	switch state {
+	case 0:
+		if_n := &InternalFunction{Name: "найти_в_базе_данных"} // имя
+		return if_n, nil, false, nil
+	case 1:
+		if_n := &InternalFunction{NumArgs: 1} // принимает на вход список
+		return if_n, nil, false, nil
+	case 2:
+		if if_ != nil {
+			result := []*Value{}
+			if args[0].GetType() != VtString {
+				return nil, nil, false, fmt.Errorf("bad type database name %v", args[0].GetType())
+			}
+			pathToDB := args[0].String()
+
+			db := NewDataBase()
+			err := db.Connect(DataBaseTypeSimple, pathToDB, ie.Output)
+			if err != nil {
+				return nil, nil, false, err
+			}
+			v := CreateValue(db)
+			result = append(result, v)
+			return nil, result, true, nil
 		}
 	}
 	return nil, nil, false, nil

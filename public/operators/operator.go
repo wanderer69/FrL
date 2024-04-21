@@ -14,34 +14,36 @@ type Operator struct {
 }
 
 const (
-	OpCargs            = 1
-	OpCconst           = 2
-	OpCfind_frame      = 3
-	OpCadd_slots       = 4
-	OpCset             = 5
-	OpCget             = 6
-	OpCframe           = 7
-	OpCunify           = 8
-	OpCcreate_iterator = 9
-	OpCiteration       = 10
-	OpCcheck_iteration = 11
-	OpCcall_function   = 12
-	OpCcall_method     = 13
-	OpCbranch          = 14
-	OpCdup             = 15
-	OpCclear           = 16
-	OpCeq              = 17
-	OpClt              = 18
-	OpCgt              = 19
-	OpCempty           = 20
-	OpCbranch_if_false = 21
-	OpCbranch_if_true  = 22
-	OpCbreak           = 23
-	OpCreturn          = 24
-	OpCcontinue        = 25
-	OpCdebug           = 26
-	OpCslice           = 27
-	OpCline            = 28
+	OpCargs           = 1
+	OpCconst          = 2
+	OpCfindFrame      = 3
+	OpCaddSlots       = 4
+	OpCset            = 5
+	OpCget            = 6
+	OpCframe          = 7
+	OpCunify          = 8
+	OpCcreateIterator = 9
+	OpCiteration      = 10
+	OpCcheckIteration = 11
+	OpCcallFunction   = 12
+	OpCcallMethod     = 13
+	OpCbranch         = 14
+	OpCdup            = 15
+	OpCclear          = 16
+	OpCeq             = 17
+	OpClt             = 18
+	OpCgt             = 19
+	OpCempty          = 20
+	OpCbranchIfFalse  = 21
+	OpCbranchIfTrue   = 22
+	OpCbreak          = 23
+	OpCreturn         = 24
+	OpCcontinue       = 25
+	OpCdebug          = 26
+	OpCslice          = 27
+	OpCline           = 28
+	OpCfindSlot       = 29
+	OpCtemplate       = 30
 )
 
 func OpName2Code(name string) byte {
@@ -51,28 +53,30 @@ func OpName2Code(name string) byte {
 		res = OpCargs
 	case "const":
 		res = OpCconst
-	case "find_frame":
-		res = OpCfind_frame
-	case "add_slots":
-		res = OpCadd_slots
+	case "findFrame":
+		res = OpCfindFrame
+	case "addSlots":
+		res = OpCaddSlots
 	case "set":
 		res = OpCset
 	case "get":
 		res = OpCget
 	case "frame":
 		res = OpCframe
+	case "template":
+		res = OpCtemplate
 	case "unify":
 		res = OpCunify
-	case "create_iterator":
-		res = OpCcreate_iterator
+	case "createIterator":
+		res = OpCcreateIterator
 	case "iteration":
 		res = OpCiteration
-	case "check_iteration":
-		res = OpCcheck_iteration
-	case "call_function":
-		res = OpCcall_function
-	case "call_method":
-		res = OpCcall_method
+	case "checkIteration":
+		res = OpCcheckIteration
+	case "callFunction":
+		res = OpCcallFunction
+	case "callMethod":
+		res = OpCcallMethod
 	case "branch":
 		res = OpCbranch
 	case "dup":
@@ -87,10 +91,10 @@ func OpName2Code(name string) byte {
 		res = OpCgt
 	case "empty":
 		res = OpCempty
-	case "branch_if_false":
-		res = OpCbranch_if_false
-	case "branch_if_true":
-		res = OpCbranch_if_true
+	case "branchIfFalse":
+		res = OpCbranchIfFalse
+	case "branchIfTrue":
+		res = OpCbranchIfTrue
 	case "break":
 		res = OpCbreak
 	case "return":
@@ -103,6 +107,8 @@ func OpName2Code(name string) byte {
 		res = OpCslice
 	case "line":
 		res = OpCline
+	case "findSlot":
+		res = OpCfindSlot
 	default:
 		panic(fmt.Errorf("bad operator name %v", name))
 	}
@@ -116,28 +122,30 @@ func OpCode2Name(c byte) string {
 		res = "args"
 	case OpCconst:
 		res = "const"
-	case OpCfind_frame:
-		res = "find_frame"
-	case OpCadd_slots:
-		res = "add_slots"
+	case OpCfindFrame:
+		res = "findFrame"
+	case OpCaddSlots:
+		res = "addSlots"
 	case OpCset:
 		res = "set"
 	case OpCget:
 		res = "get"
 	case OpCframe:
 		res = "frame"
+	case OpCtemplate:
+		res = "template"
 	case OpCunify:
 		res = "unify"
-	case OpCcreate_iterator:
-		res = "create_iterator"
+	case OpCcreateIterator:
+		res = "createIterator"
 	case OpCiteration:
 		res = "iteration"
-	case OpCcheck_iteration:
-		res = "check_iteration"
-	case OpCcall_function:
-		res = "call_function"
-	case OpCcall_method:
-		res = "call_method"
+	case OpCcheckIteration:
+		res = "checkIteration"
+	case OpCcallFunction:
+		res = "callFunction"
+	case OpCcallMethod:
+		res = "callMethod"
 	case OpCbranch:
 		res = "branch"
 	case OpCdup:
@@ -152,10 +160,10 @@ func OpCode2Name(c byte) string {
 		res = "gt"
 	case OpCempty:
 		res = "empty"
-	case OpCbranch_if_false:
-		res = "branch_if_false"
-	case OpCbranch_if_true:
-		res = "branch_if_true"
+	case OpCbranchIfFalse:
+		res = "branchIfFalse"
+	case OpCbranchIfTrue:
+		res = "branchIfTrue"
 	case OpCbreak:
 		res = "break"
 	case OpCreturn:
@@ -168,6 +176,8 @@ func OpCode2Name(c byte) string {
 		res = "slice"
 	case OpCline:
 		res = "line"
+	case OpCfindSlot:
+		res = "findSlot"
 	}
 	return res
 }
@@ -175,9 +185,9 @@ func OpCode2Name(c byte) string {
 func PrintOperator(o Operator) string {
 	result := fmt.Sprintf("%v (", OpCode2Name(o.Code))
 	for i := range o.Attributes {
-		result = result + fmt.Sprintf("%v ", o.Attributes[i].Attribute2String())
+		result = result + o.Attributes[i].Attribute2String()
 	}
-	result = result + fmt.Sprintf(")")
+	result = result + ")"
 	return result
 }
 

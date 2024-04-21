@@ -31,7 +31,6 @@ func NewStore(path string, o *print.Output) (*Store, error) {
 		sdb.CreateIndex([]string{"slot_name_slot_value"})
 		o.Print("CreateDB end\r\n")
 		sdb = smalldb.InitSmallDB(path)
-		//sdb = &psdb
 	}
 	sdb.OpenDB()
 	oc := &Store{}
@@ -44,8 +43,6 @@ func (oc *Store) SaveFrameRecord(frameId *Value, slotName string, slotProperty s
 		return fmt.Errorf("frame id must be string")
 	}
 	frameIdS := frameId.String()
-	//slotNameS := slotName
-	//slotPropertyS := slotProperty
 	slotValueS := ""
 	if slotValue.typev == VtNil {
 
@@ -112,11 +109,6 @@ func (oc *Store) Find(qri *QueryRelationItem) (func() (frameId *Value, name *Val
 	switch qri.ObjectType {
 	case "frame":
 		name = "frame_id"
-		/*
-			h1 := sha1.New()
-			h1.Write([]byte(slotValue))
-			hex.EncodeToString(h1.Sum([]byte(slot_name_s)))
-		*/
 		val = slotValue
 	case "relation":
 		if len(slotValue) > 0 {
@@ -134,32 +126,167 @@ func (oc *Store) Find(qri *QueryRelationItem) (func() (frameId *Value, name *Val
 		fmt.Printf("Error %v %v\r\n", err, err1)
 		return nil, fmt.Errorf("FindRecordIndexString error %v: %w", err, err1)
 	}
-	//Print("-> err %v\r\n", err)
-	/*
-		for k := range ds {
-			fmt.Printf("ds[%v] %#v\r\n", k, ds[k])
-		}
-	*/
 	pos := 0
 	finder := func() (frame_id *Value, name *Value, property *Value, value *Value, err error) {
-		//
 		if len(ds) <= pos {
 			return nil, nil, nil, nil, fmt.Errorf("empty")
 		}
 
 		rec := ds[pos]
 		pos = pos + 1
-		frame_id_s := rec.FieldsValue[0]
-		name_s := rec.FieldsValue[1]
-		property_s := rec.FieldsValue[2]
-		value_s := rec.FieldsValue[3]
-		frame_id = CreateValue(frame_id_s)
-		name = CreateValue(name_s)
-		property = CreateValue(property_s)
-		//value = CreateValue(value_s)
-		d, _, err := LoadValueStore([]byte(value_s))
+		frameIDs := rec.FieldsValue[0]
+		names := rec.FieldsValue[1]
+		properties := rec.FieldsValue[2]
+		values := rec.FieldsValue[3]
+		frame_id = CreateValue(frameIDs)
+		name = CreateValue(names)
+		property = CreateValue(properties)
+		d, _, err := LoadValueStore([]byte(values))
 		if err != nil {
 			return nil, nil, nil, nil, err
+		}
+		value = d
+
+		return
+	}
+	return finder, nil
+}
+
+func (oc *Store) FindShort(qri *QueryRelationItem) (func() (frameId *Value, name string, property string, value *Value, err error), error) {
+	name := ""
+	val := ""
+
+	slotValue := ""
+	if qri.Value.typev == VtNil {
+
+	} else {
+		d, err := SaveValueStore(qri.Value)
+		if err != nil {
+			return nil, err
+		}
+		slotValue = string(d)
+	}
+
+	switch qri.ObjectType {
+	case "frame":
+		name = "frame_id"
+		val = qri.Value.String() //slotValue
+	case "relation":
+		if len(slotValue) > 0 {
+			name = "slot_name_slot_value"
+			h2 := sha1.New()
+			h2.Write([]byte(qri.Object))
+			val = hex.EncodeToString(h2.Sum([]byte(slotValue)))
+		} else {
+			name = "slot_name"
+			val = qri.Object
+		}
+	}
+	ds, err, err1 := oc.Sdb.FindRecordIndexString([]string{name}, []string{val})
+	if err1 != nil {
+		fmt.Printf("Error %v %v\r\n", err, err1)
+		return nil, fmt.Errorf("FindRecordIndexString error %v: %w", err, err1)
+	}
+	pos := 0
+	finder := func() (frameID *Value, name string, property string, value *Value, err error) {
+		if len(ds) <= pos {
+			return nil, "", "", nil, fmt.Errorf("empty")
+		}
+
+		rec := ds[pos]
+		pos = pos + 1
+		frameIDs := rec.FieldsValue[0]
+		name = rec.FieldsValue[1]
+		property = rec.FieldsValue[2]
+		values := rec.FieldsValue[3]
+		frameID = CreateValue(frameIDs)
+		//name = CreateValue(names)
+		//property = CreateValue(properties)
+		d, _, err := LoadValueStore([]byte(values))
+		if err != nil {
+			return nil, "", "", nil, err
+		}
+		value = d
+
+		return
+	}
+	return finder, nil
+}
+
+func (oc *Store) FindByTemplate(frame *Frame) (func() (frameId *Value, name string, property string, value *Value, err error), error) {
+	names := []string{}
+	values := []string{}
+
+	ff := frame.Iterate()
+	for {
+		s, ok, err := ff()
+		if err != nil {
+			break
+		}
+		ssl := s.GetSlotValue()
+		slotName := s.GetSlotName()
+		//slotProperty := s.GetSlotProperty()
+		switch slotName {
+		case "ID":
+			name := "frame_id"
+			names = append(names, name)
+			/*
+				d, err := SaveValueStore(ssl[0])
+				if err != nil {
+					return nil, err
+				}
+			*/
+			values = append(values, ssl[0].String())
+		default:
+			if len(ssl) > 0 {
+				for j := range ssl {
+					name := "slot_name_slot_value"
+					h2 := sha1.New()
+					h2.Write([]byte(slotName))
+					d, err := SaveValueStore(ssl[j])
+					if err != nil {
+						return nil, err
+					}
+					val := hex.EncodeToString(h2.Sum([]byte(d)))
+
+					names = append(names, name)
+
+					values = append(values, string(val))
+				}
+			} else {
+				name := "slot_name"
+				names = append(names, name)
+				values = append(values, string(slotName))
+			}
+
+		}
+		if ok {
+			break
+		}
+	}
+	ds, err, err1 := oc.Sdb.FindRecordIndexString(names, values)
+	if err1 != nil {
+		fmt.Printf("Error %v %v\r\n", err, err1)
+		return nil, fmt.Errorf("FindRecordIndexString error %v: %w", err, err1)
+	}
+	pos := 0
+	finder := func() (frameID *Value, name string, property string, value *Value, err error) {
+		if len(ds) <= pos {
+			return nil, "", "", nil, fmt.Errorf("empty")
+		}
+
+		rec := ds[pos]
+		pos = pos + 1
+		frameIDs := rec.FieldsValue[0]
+		name = rec.FieldsValue[1]
+		property = rec.FieldsValue[2]
+		values := rec.FieldsValue[3]
+		frameID = CreateValue(frameIDs)
+		//name = CreateValue(names)
+		//property = CreateValue(properties)
+		d, _, err := LoadValueStore([]byte(values))
+		if err != nil {
+			return nil, "", "", nil, err
 		}
 		value = d
 

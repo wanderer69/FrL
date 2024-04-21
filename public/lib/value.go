@@ -31,6 +31,8 @@ const (
 	VtSlot     ValueType = 8
 	VtStream   ValueType = 9
 	VtFunction ValueType = 10
+	VtMap      ValueType = 11
+	VtDataBase ValueType = 12
 )
 
 func (vt ValueType) String() string {
@@ -58,6 +60,10 @@ func (vt ValueType) String() string {
 		result = "stream"
 	case VtFunction:
 		result = "function"
+	case VtMap:
+		result = "map"
+	case VtDataBase:
+		result = "database"
 	}
 	return result
 }
@@ -130,6 +136,10 @@ func RestoreValue(vtype int, value string) *Value {
 	case VtStream:
 		result.value = value
 	case VtFunction:
+		result.value = value
+	case VtMap:
+		result.value = value
+	case VtDataBase:
 		result.value = value
 	}
 
@@ -225,6 +235,22 @@ func (value *Value) Function() *fnc.Function {
 	switch value.typev {
 	case VtFunction:
 		return value.value.(*fnc.Function)
+	}
+	return nil
+}
+
+func (value *Value) Map() *Map {
+	switch value.typev {
+	case VtMap:
+		return value.value.(*Map)
+	}
+	return nil
+}
+
+func (value *Value) DataBase() *DataBase {
+	switch value.typev {
+	case VtDataBase:
+		return value.value.(*DataBase)
 	}
 	return nil
 }
