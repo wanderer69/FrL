@@ -48,6 +48,9 @@ func NewFrame() *Frame {
 
 func (f *Frame) AddSlot(name string) error {
 	slot := Slot{name: name}
+	if _, ok := f.ht.Lookup(name); ok {
+		return nil
+	}
 	return f.ht.Add(&slot)
 }
 
@@ -220,7 +223,7 @@ func (f *Frame) ToString() string {
 	return res
 }
 
-func (f *Frame) Print(o *print.Output, flag_n bool) {
+func (f *Frame) Print(o *print.Output, isCR bool) {
 	ff := f.ht.Iterate()
 	flag := false
 	for {
@@ -291,7 +294,7 @@ func (f *Frame) Print(o *print.Output, flag_n bool) {
 			break
 		}
 	}
-	if flag_n {
+	if isCR {
 		o.Print("\r\n")
 	}
 }

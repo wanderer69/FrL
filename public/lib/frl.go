@@ -436,6 +436,10 @@ func FromType(value *Value) (string, bool) {
 		fn := value.value.(*fnc.Function)
 		str = fmt.Sprintf("function %v args %v", fn.Name, fn.NumArgs)
 		res = true
+	case VtDataBase:
+		db := value.value.(*DataBase)
+		str = fmt.Sprintf("database %#v", db)
+		res = true
 	}
 	return str, res
 }

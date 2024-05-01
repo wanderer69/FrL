@@ -11,10 +11,12 @@ require (
 
 require github.com/wanderer69/debug v0.0.0-20230308140515-3e33c36ca2cd
 
+require github.com/google/uuid v1.3.1 // indirect
+
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/gorilla/websocket v1.5.0
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/wanderer69/tools v0.0.0-20231006084641-5aadb735c19c
+	github.com/wanderer69/tools v0.0.0-20240428091651-9a7724864412
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

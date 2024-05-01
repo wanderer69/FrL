@@ -113,7 +113,7 @@ func (cf *ContextFunc) PrintContextFunc(o *print.Output) {
 		for k, v := range cf.varDict {
 			vv, ok := FromType(v)
 			if ok {
-				o.Print(" %v:%v", k, vv)
+				o.Print(" `%v:%v`", k, vv)
 
 			} else {
 				o.Print(" Error value %v", k)
@@ -125,7 +125,7 @@ func (cf *ContextFunc) PrintContextFunc(o *print.Output) {
 		for k, v := range cf.varDict {
 			vv, ok := FromType(v)
 			if ok {
-				o.Print(" %v:%v", k, vv)
+				o.Print(" `%v:%v`", k, vv)
 
 			} else {
 				o.Print(" Error value %v", k)
@@ -1446,12 +1446,12 @@ func (ie *InterpreterEnv) InterpreterFuncStep( /* cf *ContextFunc */ ) (bool, er
 		// пробуем создать итератор
 		iter_v, err := NewIterator(v)
 		if err != nil {
-			return false, fmt.Errorf("create_iterator: NewIterator: %v", err)
+			return false, fmt.Errorf("createIterator: NewIterator: %v", err)
 		}
 		if false {
 			err = iter_v.Print(ie.Output)
 			if err != nil {
-				return false, fmt.Errorf("create_iterator: Print: %v", err)
+				return false, fmt.Errorf("createIterator: Print: %v", err)
 			}
 		}
 		// и кладем в стек
@@ -1787,10 +1787,10 @@ func (ie *InterpreterEnv) InterpreterFuncStep( /* cf *ContextFunc */ ) (bool, er
 					cf.pos = cf.pos + int(pos)
 				}
 			} else {
-				return false, fmt.Errorf("branch_if_false: bad type %v", vt)
+				return false, fmt.Errorf("branchIfFalse: bad type %v", vt)
 			}
 		} else {
-			return false, fmt.Errorf("branch_if_false: too more attributes %v", len(op.Attributes))
+			return false, fmt.Errorf("branchIfFalse: too more attributes %v", len(op.Attributes))
 		}
 	case ops.OpCbranchIfTrue:
 		for i := range op.Attributes {
@@ -1818,10 +1818,10 @@ func (ie *InterpreterEnv) InterpreterFuncStep( /* cf *ContextFunc */ ) (bool, er
 					cf.pos = cf.pos + int(pos)
 				}
 			} else {
-				return false, fmt.Errorf("branch_if_false: bad type %v", vt)
+				return false, fmt.Errorf("branchIfFalse: bad type %v", vt)
 			}
 		} else {
-			return false, fmt.Errorf("branch_if_false: too more attributes %v", len(op.Attributes))
+			return false, fmt.Errorf("branchIfFalse: too more attributes %v", len(op.Attributes))
 		}
 	case ops.OpCbreak:
 		for i := range op.Attributes {
@@ -1914,7 +1914,9 @@ func (ie *InterpreterEnv) InterpreterFuncStep( /* cf *ContextFunc */ ) (bool, er
 
 	case ops.OpCline:
 		num := op.Attributes[0].Number + 1
-		//ie.Output.Print("file name %v function name %v line: %v\r\n", cf.function.FileName, cf.function.Name, num)
+		if (ie.debug & 0x20) > 0 {
+			ie.Output.Print("file name %v function name %v line: %v\r\n", cf.function.FileName, cf.function.Name, num)
+		}
 		k := fmt.Sprintf("%v_%v", cf.function.FileName, num)
 		bp, ok := ie.breakPointsList[k]
 		if ok {

@@ -322,6 +322,7 @@ func TestFrame(t *testing.T) {
 
 		for i := range fe.Frames {
 			f := fe.Frames[i]
+			f.Print(output, true)
 			ff := f.Iterate()
 			frame_ids, err := f.GetValue("ID")
 			require.NoError(t, err)
@@ -754,18 +755,17 @@ func TestFrame(t *testing.T) {
 		fn, err := ns.FindByTemplate(template)
 		require.NoError(t, err)
 		fs := []*frl.Frame{}
-		var f *frl.Frame
+		//var f *frl.Frame
 		currentFrameID := ""
+		frameByID := make(map[string]*frl.Frame)
 		for {
-			frameId, slotName, slotProperty, slotValue, err := fn()
+			frameId, _, _, _, err := fn()
 			if err != nil {
 				break
 			}
-			if currentFrameID != frameId.String() && f != nil {
-				fs = append(fs, f)
-				f = nil
-			}
-			if f == nil {
+			isNew := false
+			f, ok := frameByID[frameId.String()]
+			if !ok {
 				f = frl.NewFrame()
 				// добавляем поле уникального идентификатора
 				id := "ID"
@@ -774,20 +774,50 @@ func TestFrame(t *testing.T) {
 				_, err := f.SetValue(id, frameId)
 				require.NoError(t, err)
 				currentFrameID = frameId.String()
-				//continue
+
+				fn, err := ns.FindShort(&frl.QueryRelationItem{ObjectType: "frame", Value: frameId})
+				require.NoError(t, err)
+				//var f *frl.Frame
+				for {
+					frameId, slotName, slotProperty, slotValue, err := fn()
+					if err != nil {
+						break
+					}
+					if f == nil {
+						f = frl.NewFrame()
+						// добавляем поле уникального идентификатора
+						id := "ID"
+						err = f.AddSlot(id)
+						require.NoError(t, err)
+						_, err := f.SetValue(id, frameId)
+						require.NoError(t, err)
+						continue
+					}
+					err = f.AddSlot(slotName)
+					require.NoError(t, err)
+					err = f.SetSlotProperty(slotName, slotProperty)
+					require.NoError(t, err)
+					_, err = f.SetValue(slotName, slotValue)
+					require.NoError(t, err)
+				}
+
+				isNew = true
 			}
-			err = f.AddSlot(slotName)
-			require.NoError(t, err)
-			err = f.SetSlotProperty(slotName, slotProperty)
-			require.NoError(t, err)
-			_, err = f.SetValue(slotName, slotValue)
-			require.NoError(t, err)
+			if isNew {
+				frameByID[currentFrameID] = f
+			}
 		}
-		if f != nil {
+		/*
+			if f != nil {
+				fs = append(fs, f)
+			}
+		*/
+		for _, f := range frameByID {
 			fs = append(fs, f)
+			f.Print(output, true)
 		}
 		require.Len(t, fs, 133)
-		require.True(t, true)
+		require.True(t, false)
 	})
 
 	require.NoError(t, os.RemoveAll("./Frames"))
@@ -802,6 +832,56 @@ func TestTranslatorExec(t *testing.T) {
 		debug    int
 	}{
 		{fileName: "test_вложенный_для_каждого.frm", debug: 0},
+		{fileName: "test_встроенных_функций.frm", debug: 0},
+		{fileName: "test_вызов_функции.frm", debug: 0},
+		{fileName: "test_вызов_функции_с_возвратом.frm", debug: 0},
+		{fileName: "test_для_каждого.frm", debug: 0},
+		{fileName: "test_если.frm", debug: 0},
+		//		{fileName: "test_нагрузочный.frm", debug: 0},
+		//		{fileName: "test_нагрузочный_памяти.frm", debug: 0},
+		{fileName: "test_пока.frm", debug: 0},
+		{fileName: "test_пока_вложенный.frm", debug: 0},
+		{fileName: "test_потока.frm", debug: 0},
+		{fileName: "test_потока_full.frm", debug: 0},
+		{fileName: "test_присваивание_константы_в_переменную.frm", debug: 0},
+
+		{fileName: "test_присваивание_константы_поиск_фрейма_в_переменную.frm", debug: 0},
+		{fileName: "test_присваивание_списка_в_переменную.frm", debug: 0},
+		{fileName: "test_форматировать.frm", debug: 0},
+		{fileName: "test_фрейм.frm", debug: 0},
+	}
+	printFunc := func(frm string, args ...any) {
+		fmt.Printf(frm, args...)
+	}
+	output := print.NewOutput(printFunc)
+	translatePrintFunc := func(frm string, args ...any) {
+		fmt.Printf(frm, args...)
+	}
+	outputTranslate := print.NewOutput(translatePrintFunc)
+	for _, fileIn := range files {
+		fmt.Printf("file_in %v\r\n", path+fileIn.fileName)
+		t.Run("exec_"+fileIn.fileName, func(t *testing.T) {
+			eb := exec.InitExecutorBase(0, output)
+			extFunctions := make(map[string]func(args []*frl.Value) ([]*frl.Value, bool, error))
+			e := exec.InitExecutor(eb, extFunctions, output, outputTranslate, fileIn.debug)
+			err := e.Exec(path+fileIn.fileName, "пример1", "1", "2")
+			require.NoError(t, err)
+		})
+	}
+	os.Remove("./test_file_new.txt")
+}
+
+func TestTranslatorExec1(t *testing.T) {
+	debug.NewDebug()
+	path := "../../data/scripts/lang/"
+
+	files := []struct {
+		fileName string
+		debug    int
+	}{
+		{fileName: "test_для_каждого.frm", debug: 0},
+		{fileName: "test_вложенный_для_каждого_без_комментариев.frm", debug: 0},
+
 		{fileName: "test_встроенных_функций.frm", debug: 0},
 		{fileName: "test_вызов_функции.frm", debug: 0},
 		{fileName: "test_вызов_функции_с_возвратом.frm", debug: 0},
@@ -948,7 +1028,43 @@ func TestTranslatorExecLineNum(t *testing.T) {
 	}
 }
 
+func TestTranslatorExecStoreAndLoad(t *testing.T) {
+	debug.NewDebug()
+	require.NoError(t, os.RemoveAll("./test_db"))
+
+	path := "../../data/scripts/lang/"
+
+	files := []struct {
+		fileName string
+		debug    int
+	}{
+		{fileName: "test_чтение_и_запись_в_бд.frm", debug: 0xfe},
+	}
+	printFunc := func(frm string, args ...any) {
+		fmt.Printf(frm, args...)
+	}
+	output := print.NewOutput(printFunc)
+	translatePrintFunc := func(frm string, args ...any) {
+		fmt.Printf(frm, args...)
+	}
+	outputTranslate := print.NewOutput(translatePrintFunc)
+
+	for _, fileIn := range files {
+		fmt.Printf("file_in %v\r\n", path+fileIn.fileName)
+		t.Run("exec_"+fileIn.fileName, func(t *testing.T) {
+			eb := exec.InitExecutorBase(0xff, output)
+			extFunctions := make(map[string]func(args []*frl.Value) ([]*frl.Value, bool, error))
+			e := exec.InitExecutor(eb, extFunctions, output, outputTranslate, fileIn.debug)
+			err := e.Exec(path+fileIn.fileName, "пример1", "1", "2")
+			require.NoError(t, err)
+		})
+	}
+	os.Remove("./test_file_new.txt")
+}
+
 func TestStore(t *testing.T) {
+	debug.NewDebug()
+
 	printFunc := func(frm string, args ...any) {
 		fmt.Printf(frm, args...)
 	}
@@ -977,7 +1093,7 @@ func TestStore(t *testing.T) {
 	v, _ = f.Set("отношение", relation)
 	fe.AddRelations(f, frl.AddRelationItem{ObjectType: "relation", Object: "отношение", Value: v})
 
-	r, err := convertor.LoadRelation("relation.txt")
+	r, err := convertor.LoadRelation("../../data/relations.txt")
 	require.NoError(t, err)
 
 	if false {

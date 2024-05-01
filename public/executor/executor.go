@@ -70,6 +70,10 @@ func InitExecutor(
 	ie.BindFunction(frl.SetSlotFrame_internal)
 	ie.BindFunction(frl.DeleteSlotFrame_internal)
 	ie.BindFunction(frl.EvalString_internal)
+	ie.BindFunction(frl.OpenDataBase_internal)
+	ie.BindFunction(frl.FindInDataBase_internal)
+	ie.BindFunction(frl.CloseDataBase_internal)
+	ie.BindFunction(frl.StoreInDataBase_internal)
 	ie.ExternalFunctions = extFunctions
 
 	ie.SetFrameEnvironment(eb.fe)
@@ -112,7 +116,7 @@ func (e *Executor) ExecString(fileName string, data string, funcStartName string
 	if len(initFuncName) > 0 {
 		_, err = e.ie.InterpreterFunc(ce, initFuncName, []*frl.Value{})
 		if err != nil {
-			return fmt.Errorf("intrepreter function %v error %w", initFuncName, err)
+			return fmt.Errorf("interepreter function %v error %w", initFuncName, err)
 		}
 		for {
 			flag, err := e.ie.InterpreterFuncStep()

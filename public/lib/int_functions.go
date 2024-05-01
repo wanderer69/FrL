@@ -885,7 +885,7 @@ func OpenDataBase_internal(ie *InterpreterEnv, state int, if_ *InternalFunction,
 			}
 			v := CreateValue(db)
 			result = append(result, v)
-			return nil, result, true, nil
+			return if_, result, true, nil
 		}
 	}
 	return nil, nil, false, nil
@@ -913,7 +913,7 @@ func CloseDataBase_internal(ie *InterpreterEnv, state int, if_ *InternalFunction
 			db.Close()
 
 			//result = append(result, v)
-			return nil, nil, false, nil
+			return if_, nil, false, nil
 		}
 	}
 	return nil, nil, false, nil
@@ -934,19 +934,141 @@ func FindInDataBase_internal(ie *InterpreterEnv, state int, if_ *InternalFunctio
 	case 2:
 		if if_ != nil {
 			result := []*Value{}
-			if args[0].GetType() != VtString {
-				return nil, nil, false, fmt.Errorf("bad type database name %v", args[0].GetType())
-			}
-			pathToDB := args[0].String()
 
-			db := NewDataBase()
-			err := db.Connect(DataBaseTypeSimple, pathToDB, ie.Output)
+			if args[0].GetType() != VtDataBase {
+				return nil, nil, false, fmt.Errorf("must be database, has %v", args[0].GetType())
+			}
+			ns := args[0].DataBase()
+			if args[1].GetType() != VtFrame {
+				return nil, nil, false, fmt.Errorf("must be frame, has %v", args[1].GetType())
+			}
+			template := args[1].Frame()
+
+			fn, err := ns.oc.FindByTemplate(template)
 			if err != nil {
 				return nil, nil, false, err
 			}
-			v := CreateValue(db)
+
+			fs := []*Value{}
+			currentFrameID := ""
+			frameByID := make(map[string]*Frame)
+			for {
+				frameId, _, _, _, err := fn()
+				if err != nil {
+					break
+				}
+				isNew := false
+				f, ok := frameByID[frameId.String()]
+				if !ok {
+					f = NewFrame()
+					// добавляем поле уникального идентификатора
+					id := "ID"
+					err = f.AddSlot(id)
+					if err != nil {
+						return nil, nil, false, err
+					}
+
+					_, err := f.SetValue(id, frameId)
+					if err != nil {
+						return nil, nil, false, err
+					}
+
+					currentFrameID = frameId.String()
+
+					fn, err := ns.oc.FindShort(&QueryRelationItem{ObjectType: "frame", Value: frameId})
+					if err != nil {
+						return nil, nil, false, err
+					}
+
+					for {
+						_, slotName, slotProperty, slotValue, err := fn()
+						if err != nil {
+							break
+						}
+						err = f.AddSlot(slotName)
+						if err != nil {
+							return nil, nil, false, err
+						}
+
+						err = f.SetSlotProperty(slotName, slotProperty)
+						if err != nil {
+							return nil, nil, false, err
+						}
+
+						_, err = f.SetValue(slotName, slotValue)
+						if err != nil {
+							return nil, nil, false, err
+						}
+					}
+
+					isNew = true
+				}
+				if isNew {
+					frameByID[currentFrameID] = f
+				}
+			}
+			for _, v := range frameByID {
+				fs = append(fs, CreateValue(v))
+			}
+			v := CreateValue(fs)
 			result = append(result, v)
-			return nil, result, true, nil
+			return if_, result, true, nil
+		}
+	}
+	return nil, nil, false, nil
+}
+
+func StoreInDataBase_internal(ie *InterpreterEnv, state int, if_ *InternalFunction, args []*Value) (*InternalFunction, []*Value, bool, error) {
+	// принцип аналогичен команде однако есть отличие так как вычисление идет в две итерации
+	// 0. регистрация
+	// 1. оценка и связывание аргументов
+	// 2. собственно вычисление
+	switch state {
+	case 0:
+		if_n := &InternalFunction{Name: "сохранить_в_базу_данных"} // имя
+		return if_n, nil, false, nil
+	case 1:
+		if_n := &InternalFunction{NumArgs: 2} // принимает на вход список
+		return if_n, nil, false, nil
+	case 2:
+		if if_ != nil {
+			if args[0].GetType() != VtDataBase {
+				return nil, nil, false, fmt.Errorf("must be database, has %v", args[0].GetType())
+			}
+			ns := args[0].DataBase()
+			if args[1].GetType() != VtFrame {
+				return nil, nil, false, fmt.Errorf("must be frame, has %v", args[1].GetType())
+			}
+			f := args[1].Frame()
+			ff := f.Iterate()
+			frame_ids, err := f.GetValue("ID")
+			if err != nil {
+				fmt.Printf("get value %v\r\n", err)
+				return nil, nil, false, fmt.Errorf("get value %v", err)
+			}
+			frame_id := frame_ids[0]
+			for {
+				s, ok, err := ff()
+				if err != nil {
+					break
+				}
+				ssl := s.GetSlotValue()
+				slot_name := s.GetSlotName()
+				slot_property := s.GetSlotProperty()
+				if slot_name != "ID" {
+					for j := range ssl {
+						err := ns.oc.SaveFrameRecord(frame_id, slot_name, slot_property, ssl[j], 0)
+						if err != nil {
+							fmt.Printf("SaveFrameRecord: %v\r\n", err)
+							return nil, nil, false, fmt.Errorf("SaveFrameRecord: %v", err)
+						}
+					}
+				}
+				if ok {
+					break
+				}
+			}
+			return nil, nil, false, nil
 		}
 	}
 	return nil, nil, false, nil

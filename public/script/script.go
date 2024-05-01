@@ -579,7 +579,7 @@ func fCallFunction(pi parser.ParseItem, env *parser.Env, level int) (string, err
 		}
 
 		op := &ops.Operator{}
-		op.Code = ops.OpName2Code("call_function")
+		op.Code = ops.OpName2Code("callFunction")
 
 		b0 := strings.Trim(function_name, " ")
 		a, err := ParseArg(b0)
@@ -746,7 +746,7 @@ func fCallMethod(pi parser.ParseItem, env *parser.Env, level int) (string, error
 		}
 
 		op = &ops.Operator{}
-		op.Code = ops.OpName2Code("call_method")
+		op.Code = ops.OpName2Code("callMethod")
 
 		op.Attributes = append(op.Attributes, obj)
 		op.Attributes = append(op.Attributes, m_name)
@@ -866,7 +866,7 @@ func fCallFunctionWithAssignment(pi parser.ParseItem, env *parser.Env, level int
 		}
 
 		op := &ops.Operator{}
-		op.Code = ops.OpName2Code("call_function")
+		op.Code = ops.OpName2Code("callFunction")
 
 		b0 := strings.Trim(function_name, " ")
 		a, err := ParseArg(b0)
@@ -1060,7 +1060,7 @@ func fCallMethodWithAssignment(pi parser.ParseItem, env *parser.Env, level int) 
 		}
 
 		op := &ops.Operator{}
-		op.Code = ops.OpName2Code("call_method")
+		op.Code = ops.OpName2Code("callMethod")
 
 		op.Attributes = append(op.Attributes, obj)
 		op.Attributes = append(op.Attributes, m_name)
@@ -1173,7 +1173,7 @@ func fCallFunctionWithAssignmentMany(pi parser.ParseItem, env *parser.Env, level
 		}
 
 		op := &ops.Operator{}
-		op.Code = ops.OpName2Code("call_function")
+		op.Code = ops.OpName2Code("callFunction")
 
 		b0 := strings.Trim(function_name, " ")
 		a, err := ParseArg(b0)
@@ -1321,7 +1321,7 @@ func fIf(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 		l := len(eops)
 
 		op := &ops.Operator{}
-		op.Code = ops.OpName2Code("branch_if_false")
+		op.Code = ops.OpName2Code("branchIfFalse")
 		a := attr.NewAttribute(attr.AttrTNumber, fmt.Sprintf("%v", l), nil)
 		op.Attributes = append(op.Attributes, a)
 
@@ -1600,8 +1600,8 @@ func fForEach(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 		eops := rp.Stack[rp.StackPos].ExecOps
 		eops_l := len(eops)
 
-		// find_frame (......) -> stack
-		// stack -> create_iterator -> stack
+		// findFrame (......) -> stack
+		// stack -> createIterator -> stack
 		// stack -> set var iteration_xxx
 		// iteration (iteration_xxx) -> stack
 		// stack -> set var <var>
@@ -1663,7 +1663,7 @@ func fForEach(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 			case 0:
 				// заменяем на вызов поиска фрейма
 				op1 := &ops.Operator{}
-				op1.Code = ops.OpName2Code("find_frame")
+				op1.Code = ops.OpName2Code("findFrame")
 
 				sl := strings.Split(args, ",")
 				for i := range sl {
@@ -1708,7 +1708,7 @@ func fForEach(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 					{
 						// заменяем на вызов поиска фрейма
 						op1 := &ops.Operator{}
-						op1.Code = ops.OpName2Code("find_frame")
+						op1.Code = ops.OpName2Code("findFrame")
 
 						sl := strings.Split(args, ",")
 						for i := range sl {
@@ -1744,7 +1744,7 @@ func fForEach(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 
 		// делаем переход на один оператор дальше если не истина (то есть не пусто)
 		op3 := &ops.Operator{}
-		op3.Code = ops.OpName2Code("branch_if_false")
+		op3.Code = ops.OpName2Code("branchIfFalse")
 		a3 := attr.NewAttribute(attr.AttrTNumber, fmt.Sprintf("%v", 3), nil)
 		op3.Attributes = append(op3.Attributes, a3)
 
@@ -1765,7 +1765,7 @@ func fForEach(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 
 		// так как результат не пуст то создаем итератор
 		op11 := &ops.Operator{}
-		op11.Code = ops.OpName2Code("create_iterator")
+		op11.Code = ops.OpName2Code("createIterator")
 
 		bb_s = append(bb_s, op11)
 
@@ -1825,12 +1825,12 @@ func fForEach(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 
 		// проверяем что итератор не кончился - в стеке true если все кончилось
 		op131 := &ops.Operator{}
-		op131.Code = ops.OpName2Code("check_iteration")
+		op131.Code = ops.OpName2Code("checkIteration")
 
 		bb = append(bb, op131)
 
 		op33 := &ops.Operator{}
-		op33.Code = ops.OpName2Code("branch_if_false")
+		op33.Code = ops.OpName2Code("branchIfFalse")
 		a31 := attr.NewAttribute(attr.AttrTNumber, fmt.Sprintf("%v", -(len(bb))), nil)
 		op33.Attributes = append(op33.Attributes, a31)
 		bb = append(bb, op33)
@@ -1927,7 +1927,7 @@ func fWhile(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 
 		// делаем переход в конец если не истина (то есть не пусто)
 		op3 := &ops.Operator{}
-		op3.Code = ops.OpName2Code("branch_if_false")
+		op3.Code = ops.OpName2Code("branchIfFalse")
 		a3 := attr.NewAttribute(attr.AttrTNumber, fmt.Sprintf("%v", 1+eops_l+1), nil)
 		op3.Attributes = append(op3.Attributes, a3)
 		bb = append(bb, op3)
@@ -2240,7 +2240,7 @@ func fFindWithAssignment(pi parser.ParseItem, env *parser.Env, level int) (strin
 		// поиск
 		s1 := pi.Items[0].Data
 		s2 := pi.Items[3].Data
-		result = fmt.Sprintf("(%v = find_frame_with_assignment %v)", s2, s1)
+		result = fmt.Sprintf("(%v = findFrame_with_assignment %v)", s2, s1)
 		env.CE.State = 1000
 
 		rp := env.Struct.(FrameParser)
@@ -2277,7 +2277,7 @@ func fFindWithAssignment(pi parser.ParseItem, env *parser.Env, level int) (strin
 		}
 
 		op1 := &ops.Operator{}
-		op1.Code = ops.OpName2Code("find_frame")
+		op1.Code = ops.OpName2Code("findFrame")
 
 		sl := ns.ParseStringBySignList(s1, []string{","})
 		for i := range sl {
@@ -2362,7 +2362,7 @@ func fFindAndAdd(pi parser.ParseItem, env *parser.Env, level int) (string, error
 		}
 
 		op1 := &ops.Operator{}
-		op1.Code = ops.OpName2Code("find_frame")
+		op1.Code = ops.OpName2Code("findFrame")
 
 		sa := ns.ParseStringBySignList(s1, []string{","})
 		for i := range sa {
@@ -2402,7 +2402,7 @@ func fFindAndAdd(pi parser.ParseItem, env *parser.Env, level int) (string, error
 
 		// делаем переход на один оператор дальше если не истина (то есть не пусто)
 		op3 := &ops.Operator{}
-		op3.Code = ops.OpName2Code("branch_if_false")
+		op3.Code = ops.OpName2Code("branchIfFalse")
 		a3 := attr.NewAttribute(attr.AttrTNumber, fmt.Sprintf("%v", 3), nil)
 		op3.Attributes = append(op3.Attributes, a3)
 
@@ -2435,7 +2435,7 @@ func fFindAndAdd(pi parser.ParseItem, env *parser.Env, level int) (string, error
 
 		// в стеке то к чему надо добавить
 		op2 := &ops.Operator{}
-		op2.Code = ops.OpName2Code("add_slots")
+		op2.Code = ops.OpName2Code("addSlots")
 		sa = strings.Split(s2, ",")
 		for i := range sa {
 			arg := strings.Trim(sa[i], " ")
@@ -2535,7 +2535,7 @@ func fAddToVariable(pi parser.ParseItem, env *parser.Env, level int) (string, er
 
 		// в стеке то к чему надо добавить
 		op2 := &ops.Operator{}
-		op2.Code = ops.OpName2Code("add_slots")
+		op2.Code = ops.OpName2Code("addSlots")
 		sa := strings.Split(s1, ",")
 		for i := range sa {
 			arg := strings.Trim(sa[i], " ")
@@ -2602,7 +2602,7 @@ func fUnify(pi parser.ParseItem, env *parser.Env, level int) (string, error) {
 		}
 
 		op1 := &ops.Operator{}
-		op1.Code = ops.OpName2Code("find_frame")
+		op1.Code = ops.OpName2Code("findFrame")
 
 		sl := strings.Split(s1, ",")
 		for i := range sl {
@@ -3102,12 +3102,12 @@ func MakeRules(env *parser.Env) {
 		"добавление слотов в результататы поиска", "присваивание результатат поиска созданного из списка",
 		"присваивание списка слотов найденного фрейма", "вернуть", "унификация",
 		"если", "если - иначе", "вызов функции", "для каждого элемента", "вызов метода", "прервать",
-		"продолжить", "присвоить", "фрейм присвоить переменной", "присвоить_список",
-		"вызов функции с присваиванием", "вызов метода с присваиванием", "пока",
-		"вызов функции с присваиванием нескольких значений",
+		"продолжить", "присвоить", "фрейм присвоить переменной", "присвоить_список", "пока",
 		"добавление слотов в фрейм который в переменной",
 		"если en", "для каждого элемента en", "пока en", "прервать en",
 		"продолжить en", "шаблон присвоить переменной", "шаблон присвоить переменной en",
+		"вызов функции с присваиванием", "вызов метода с присваиванием",
+		"вызов функции с присваиванием нескольких значений",
 	}
 
 	//<symbols, == отношения> <{, > - добавление отношений во фреймы
@@ -3171,7 +3171,7 @@ func MakeRules(env *parser.Env) {
 
 	//<symbols, == шаблон> <(, > - определение шаблона, после ключевого слова идет список
 	gr = parser.MakeRule("шаблон присвоить переменной", env)
-	gr.AddItemToRule("symbols", "", 1, "фрейм", "", []string{}, env)
+	gr.AddItemToRule("symbols", "", 1, "шаблон", "", []string{}, env)
 	gr.AddItemToRule("(", "", 0, "", "", []string{"список_аргументов"}, env) // , "список"
 	gr.AddItemToRule("symbols", "", 1, "=>", "", []string{}, env)
 	gr.AddItemToRule("symbols", "[0]", 1, "?", ";", []string{}, env)

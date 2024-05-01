@@ -25,16 +25,37 @@ func NewStore(path string, o *print.Output) (*Store, error) {
 			o.Print("Error creating DB %v\r\n", err)
 			return nil, err
 		}
-		sdb.CreateIndex([]string{"frame_id"})
-		sdb.CreateIndex([]string{"slot_name"})
-		sdb.CreateIndex([]string{"frame_id_slot_name"})
-		sdb.CreateIndex([]string{"slot_name_slot_value"})
+		err = sdb.CreateIndex([]string{"frame_id"})
+		if err != nil {
+			o.Print("Error creating index frame_id %v\r\n", err)
+			return nil, err
+		}
+		err = sdb.CreateIndex([]string{"slot_name"})
+		if err != nil {
+			o.Print("Error creating index slot_name %v\r\n", err)
+			return nil, err
+		}
+		err = sdb.CreateIndex([]string{"frame_id_slot_name"})
+		if err != nil {
+			o.Print("Error creating index frame_id_slot_name %v\r\n", err)
+			return nil, err
+		}
+		err = sdb.CreateIndex([]string{"slot_name_slot_value"})
+		if err != nil {
+			o.Print("Error creating index slot_name_slot_value %v\r\n", err)
+			return nil, err
+		}
 		o.Print("CreateDB end\r\n")
 		sdb = smalldb.InitSmallDB(path)
 	}
-	sdb.OpenDB()
-	oc := &Store{}
-	oc.Sdb = sdb
+	err := sdb.OpenDB()
+	if err != nil {
+		o.Print("Error open DB %v\r\n", err)
+		return nil, err
+	}
+	oc := &Store{
+		Sdb: sdb,
+	}
 	return oc, nil
 }
 
