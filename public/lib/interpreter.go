@@ -22,6 +22,11 @@ type BreakPoint struct {
 	LineNum  int
 }
 
+type Channel struct {
+	Name  string
+	Value chan *Value
+}
+
 // Это интерпретатор кода который может транслировать исходный текст в массив операторов, интерпретировать его, сохранять операторы и загружать их.
 type InterpreterEnv struct {
 	Output          *print.Output
@@ -43,6 +48,18 @@ type InterpreterEnv struct {
 	currentBreakPoint *BreakPoint
 
 	ExternalFunctions map[string]func(args []*Value) ([]*Value, bool, error)
+	Events            []*Event
+	EventsByID        map[string]*Event
+	Channels          map[string]*Channel
+	done              chan struct{}
+}
+
+func (ie *InterpreterEnv) SetDone(done chan struct{}) {
+	ie.done = done
+}
+
+func (ie *InterpreterEnv) GetDone() chan struct{} {
+	return ie.done
 }
 
 func (ie *InterpreterEnv) AddBreakPoints(breakPoints []*BreakPoint) {
@@ -162,7 +179,8 @@ func NewInterpreterEnv() *InterpreterEnv {
 	ie.contextEnvDict = make(map[string]*ContextEnv)
 	ie.breakPointsList = make(map[string]*BreakPoint)
 	ie.extFuncs = make(map[string]func(ie *InterpreterEnv, state int, if_ *ExternalFunction, args []*Value) (*ExternalFunction, []*Value, bool, error))
-
+	ie.Channels = make(map[string]*Channel)
+	ie.EventsByID = make(map[string]*Event)
 	return &ie
 }
 
@@ -559,15 +577,31 @@ func (ie *InterpreterEnv) InterpreterFuncStep( /* cf *ContextFunc */ ) (bool, er
 			if len(templ[i]) == len(lst) {
 				n := 0
 				for j := range lst {
-					if lst[j] == ":" {
+					/*
+						if lst[j] == ":" {
+							if lst[j] == templ[i][j].Templ {
+								n = n + 1
+							}
+						} else if lst[j] == "?" {
+							if lst[j] == templ[i][j].Templ {
+								n = n + 1
+							}
+						} else {
+							if templ[i][j].Templ == "const" {
+								n = n + 1
+							}
+						}
+					*/
+					switch lst[j] {
+					case ":":
 						if lst[j] == templ[i][j].Templ {
 							n = n + 1
 						}
-					} else if lst[j] == "?" {
+					case "?":
 						if lst[j] == templ[i][j].Templ {
 							n = n + 1
 						}
-					} else {
+					default:
 						if templ[i][j].Templ == "const" {
 							n = n + 1
 						}
@@ -611,7 +645,8 @@ func (ie *InterpreterEnv) InterpreterFuncStep( /* cf *ContextFunc */ ) (bool, er
 						if debug > 5 {
 							ie.Output.Print("state %v\r\n", state)
 						}
-						if res[i].Type == "slot" {
+						switch res[i].Type {
+						case "slot":
 							if state == 0 {
 								if (res[i].Value == "slot") || (res[i].Value == "слот") {
 									state = 1
@@ -619,52 +654,100 @@ func (ie *InterpreterEnv) InterpreterFuncStep( /* cf *ContextFunc */ ) (bool, er
 									return nil, false, fmt.Errorf("must be slot. Now %v", res[i].Value)
 								}
 							}
-						} else if res[i].Type == "sign" {
-							if res[i].Value == ":" {
-								if state == 1 {
+						case "sign":
+							switch res[i].Value {
+							case ":":
+								switch state {
+								case 1:
 									state = 2
-								} else if state == 5 {
+								case 5:
 									state = 6
 								}
-							} else if res[i].Value == "?" {
-								if state == 0 {
+							case "?":
+								/*
+									if state == 0 {
+										state = 4
+									} else if state == 2 {
+										state = 11
+									} else if state == 6 {
+										state = 8
+									} else if state == 12 {
+										state = 14
+									}
+								*/
+								switch state {
+								case 0:
 									state = 4
-								} else if state == 2 {
+								case 2:
 									state = 11
-								} else if state == 6 {
+								case 6:
 									state = 8
-								} else if state == 12 {
+								case 12:
 									state = 14
 								}
 							}
-						} else if res[i].Type == "var" {
-							if state == 4 {
+						case "var":
+							/*
+								if state == 4 {
+									varName = res[i].Value
+									state = 5
+								} else if state == 11 {
+									varName = res[i].Value
+									state = 12
+								} else if state == 14 {
+									varName2 = res[i].Value
+									state = 15
+								}
+							*/
+
+							switch state {
+							case 4:
 								varName = res[i].Value
 								state = 5
-							} else if state == 11 {
+							case 11:
 								varName = res[i].Value
 								state = 12
-							} else if state == 14 {
+							case 14:
 								varName2 = res[i].Value
 								state = 15
 							}
-						} else if res[i].Type == "value" {
-							if state == 2 {
+						case "value":
+							/*
+								if state == 2 {
+									slotName = res[i].Value
+									state = 3
+								} else if state == 5 {
+									value = res[i].Value
+									state = 7
+								} else if state == 8 {
+									varName = res[i].Value
+									state = 9
+								} else if state == 0 {
+									value = res[i].Value
+									state = 10
+								} else if state == 11 {
+									value = res[i].Value
+									state = 13
+								}
+							*/
+							switch state {
+							case 2:
 								slotName = res[i].Value
 								state = 3
-							} else if state == 5 {
+							case 5:
 								value = res[i].Value
 								state = 7
-							} else if state == 8 {
+							case 8:
 								varName = res[i].Value
 								state = 9
-							} else if state == 0 {
+							case 0:
 								value = res[i].Value
 								state = 10
-							} else if state == 11 {
+							case 11:
 								value = res[i].Value
 								state = 13
 							}
+
 						}
 					}
 					if debug > 6 {

@@ -497,7 +497,8 @@ func (value1 *Value) SprintfString(values ...*Value) (*Value, error) {
 		cnt := 0
 		ss := ""
 		for i := range sl {
-			if sl[i][0] == '?' {
+			switch sl[i][0] {
+			case '?':
 				s1 := sl[i][1:]
 				if cnt < len(values) {
 					v := values[cnt]
@@ -506,24 +507,25 @@ func (value1 *Value) SprintfString(values ...*Value) (*Value, error) {
 					cnt = cnt + 1
 				}
 				ss = ss + s1
-			} else if sl[i][0] == '%' {
+			case '%':
 				ss = ss + sl[i]
-			} else {
+			default:
 				ss = ss + sl[i]
 			}
 		}
 		ssl := strings.Split(ss, "\\")
 		sss := ""
 		for i := range ssl {
-			if ssl[i][0] == 'r' {
+			switch ssl[i][0] {
+			case 'r':
 				sss = sss + string([]byte{0x0d}) + ssl[i][1:]
-			} else if ssl[i][0] == 'n' {
+			case 'n':
 				sss = sss + string([]byte{0x0a}) + ssl[i][1:]
-			} else if ssl[i][0] == 't' {
+			case 't':
 				sss = sss + string([]byte{0x09}) + ssl[i][1:]
-			} else if ssl[i][0] == '\\' {
+			case '\\':
 				sss = sss + string([]byte{0x5c}) + ssl[i][1:]
-			} else {
+			default:
 				sss = sss + ssl[i]
 			}
 		}
@@ -628,11 +630,11 @@ func (value1 *Value) FrameAddSlot(value2 *Value) error {
 func (value1 *Value) FrameSetSlot(value2 *Value, value3 *Value) error {
 	switch value1.typev {
 	case VtFrame:
-		switch value1.typev {
+		switch value2.typev {
 		case VtString:
 			f := value1.value.(*Frame)
-			n := value1.value.(string)
-			f.SetValue(n, value3)
+			n := value2.value.(string)
+			f.SetValues(n, []*Value{value3})
 			return nil
 		}
 	}

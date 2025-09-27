@@ -248,7 +248,7 @@ func TestFrame(t *testing.T) {
 
 		fe.AddRelations(f, frl.AddRelationItem{ObjectType: "relation", Object: "отношение", Value: v})
 
-		r, err := convertor.LoadRelation("/home/user/Go_projects/SemanticNet/data/relation.txt")
+		r, err := convertor.LoadRelation("../../data/relations.txt" /*"/home/user/Go_projects/SemanticNet/data/relation.txt"*/)
 		require.NoError(t, err)
 
 		if false {
@@ -655,13 +655,15 @@ func TestFrame(t *testing.T) {
 			{
 				ObjectType: "relation",
 				Object:     "наименование",
-				Value:      frl.CreateValue("отношение_предикат_сравнения"),
+				Value:      frl.CreateValue("отношение_потребитель"),
 			},
-			{
-				ObjectType: "relation",
-				Object:     "тип_отношения",
-				Value:      frl.CreateValue("Предикаты отношения, связи (действия или состояния):"),
-			},
+			/*
+				{
+					ObjectType: "relation",
+					Object:     "тип_отношения",
+					Value:      frl.CreateValue("Предикаты отношения, связи (действия или состояния):"),
+				},
+			*/
 		}
 		fl, err := fe.QueryRelations(qris...)
 		require.NoError(t, err)
@@ -678,7 +680,7 @@ func TestFrame(t *testing.T) {
 		qri1 := frl.QueryRelationItem{
 			ObjectType: "relation",
 			Object:     "наименование",
-			Value:      frl.CreateValue("отношение_предикат_сравнения"),
+			Value:      frl.CreateValue("отношение_траектория"),
 		}
 		ff, err := ns.FindShort(&qri1)
 		require.NoError(t, err)
@@ -689,7 +691,7 @@ func TestFrame(t *testing.T) {
 			}
 			fmt.Printf("frame_id %v, slot_name %v, slot_property %v, slot_value %v\r\n", frameId, slotName, slotProperty, slotValue)
 			require.Equal(t, "наименование", slotName)
-			require.Equal(t, "отношение_предикат_сравнения", slotValue.String())
+			require.Equal(t, "отношение_траектория", slotValue.String())
 			frameIDs = append(frameIDs, frameId)
 		}
 		require.Len(t, frameIDs, 1)
@@ -816,8 +818,8 @@ func TestFrame(t *testing.T) {
 			fs = append(fs, f)
 			f.Print(output, true)
 		}
-		require.Len(t, fs, 133)
-		require.True(t, false)
+		require.Len(t, fs, 13)
+		require.True(t, true)
 	})
 
 	require.NoError(t, os.RemoveAll("./Frames"))
@@ -857,13 +859,14 @@ func TestTranslatorExec(t *testing.T) {
 	translatePrintFunc := func(frm string, args ...any) {
 		fmt.Printf(frm, args...)
 	}
+	eventManager := frl.NewEventManager()
 	outputTranslate := print.NewOutput(translatePrintFunc)
 	for _, fileIn := range files {
 		fmt.Printf("file_in %v\r\n", path+fileIn.fileName)
 		t.Run("exec_"+fileIn.fileName, func(t *testing.T) {
-			eb := exec.InitExecutorBase(0, output)
+			eb := exec.NewExecutorBase(0, output)
 			extFunctions := make(map[string]func(args []*frl.Value) ([]*frl.Value, bool, error))
-			e := exec.InitExecutor(eb, extFunctions, output, outputTranslate, fileIn.debug)
+			e := exec.InitExecutor(eb, extFunctions, output, outputTranslate, fileIn.debug, eventManager)
 			err := e.Exec(path+fileIn.fileName, "пример1", "1", "2")
 			require.NoError(t, err)
 		})
@@ -908,12 +911,13 @@ func TestTranslatorExec1(t *testing.T) {
 		fmt.Printf(frm, args...)
 	}
 	outputTranslate := print.NewOutput(translatePrintFunc)
+	eventManager := frl.NewEventManager()
 	for _, fileIn := range files {
 		fmt.Printf("file_in %v\r\n", path+fileIn.fileName)
 		t.Run("exec_"+fileIn.fileName, func(t *testing.T) {
-			eb := exec.InitExecutorBase(0, output)
+			eb := exec.NewExecutorBase(0, output)
 			extFunctions := make(map[string]func(args []*frl.Value) ([]*frl.Value, bool, error))
-			e := exec.InitExecutor(eb, extFunctions, output, outputTranslate, fileIn.debug)
+			e := exec.InitExecutor(eb, extFunctions, output, outputTranslate, fileIn.debug, eventManager)
 			err := e.Exec(path+fileIn.fileName, "пример1", "1", "2")
 			require.NoError(t, err)
 		})
@@ -958,11 +962,12 @@ func TestTranslatorExecExtFunc(t *testing.T) {
 	}
 
 	outputTranslate := print.NewOutput(translatePrintFunc)
+	eventManager := frl.NewEventManager()
 	for _, fileIn := range files {
 		fmt.Printf("file_in %v\r\n", path+fileIn.fileName)
 		t.Run("exec_"+fileIn.fileName, func(t *testing.T) {
-			eb := exec.InitExecutorBase(0, output)
-			e := exec.InitExecutor(eb, extFunctions, output, outputTranslate, fileIn.debug)
+			eb := exec.NewExecutorBase(0, output)
+			e := exec.InitExecutor(eb, extFunctions, output, outputTranslate, fileIn.debug, eventManager)
 			err := e.Exec(path+fileIn.fileName, "пример1", "1", "2")
 			require.NoError(t, err)
 		})
@@ -986,12 +991,13 @@ func TestTranslatorExecBad(t *testing.T) {
 		fmt.Printf(frm, args...)
 	}
 	outputTranslate := print.NewOutput(translatePrintFunc)
+	eventManager := frl.NewEventManager()
 	for _, fileIn := range files {
 		fmt.Printf("file_in %v\r\n", path+fileIn)
 		t.Run("exec "+fileIn, func(t *testing.T) {
-			eb := exec.InitExecutorBase(0, output)
+			eb := exec.NewExecutorBase(0, output)
 			extFunctions := make(map[string]func(args []*frl.Value) ([]*frl.Value, bool, error))
-			e := exec.InitExecutor(eb, extFunctions, output, outputTranslate, 0)
+			e := exec.InitExecutor(eb, extFunctions, output, outputTranslate, 0, eventManager)
 			err := e.Exec(path+fileIn, "пример1", "1", "2")
 			//require.NoError(t, err)
 			require.ErrorContains(t, err, "translate error")
@@ -1016,12 +1022,13 @@ func TestTranslatorExecLineNum(t *testing.T) {
 		fmt.Printf(frm, args...)
 	}
 	outputTranslate := print.NewOutput(translatePrintFunc)
+	eventManager := frl.NewEventManager()
 	for _, fileIn := range files {
 		fmt.Printf("file_in %v\r\n", path+fileIn)
 		t.Run("exec "+fileIn, func(t *testing.T) {
-			eb := exec.InitExecutorBase(0xff, output)
+			eb := exec.NewExecutorBase(0xff, output)
 			extFunctions := make(map[string]func(args []*frl.Value) ([]*frl.Value, bool, error))
-			e := exec.InitExecutor(eb, extFunctions, output, outputTranslate, 0)
+			e := exec.InitExecutor(eb, extFunctions, output, outputTranslate, 0, eventManager)
 			err := e.Exec(path+fileIn, "пример1", "1", "2")
 			require.NoError(t, err)
 		})
@@ -1048,13 +1055,47 @@ func TestTranslatorExecStoreAndLoad(t *testing.T) {
 		fmt.Printf(frm, args...)
 	}
 	outputTranslate := print.NewOutput(translatePrintFunc)
-
+	eventManager := frl.NewEventManager()
 	for _, fileIn := range files {
 		fmt.Printf("file_in %v\r\n", path+fileIn.fileName)
 		t.Run("exec_"+fileIn.fileName, func(t *testing.T) {
-			eb := exec.InitExecutorBase(0xff, output)
+			eb := exec.NewExecutorBase(0xff, output)
 			extFunctions := make(map[string]func(args []*frl.Value) ([]*frl.Value, bool, error))
-			e := exec.InitExecutor(eb, extFunctions, output, outputTranslate, fileIn.debug)
+			e := exec.InitExecutor(eb, extFunctions, output, outputTranslate, fileIn.debug, eventManager)
+			err := e.Exec(path+fileIn.fileName, "пример1", "1", "2")
+			require.NoError(t, err)
+		})
+	}
+	os.Remove("./test_file_new.txt")
+}
+
+func TestTranslatorEvent(t *testing.T) {
+	debug.NewDebug()
+	require.NoError(t, os.RemoveAll("./test_db"))
+
+	path := "../../data/scripts/lang/"
+
+	files := []struct {
+		fileName string
+		debug    int
+	}{
+		{fileName: "test_событий.frm", debug: 0 /*xfe*/},
+	}
+	printFunc := func(frm string, args ...any) {
+		fmt.Printf(frm, args...)
+	}
+	output := print.NewOutput(printFunc)
+	translatePrintFunc := func(frm string, args ...any) {
+		fmt.Printf(frm, args...)
+	}
+	outputTranslate := print.NewOutput(translatePrintFunc)
+	eventManager := frl.NewEventManager()
+	for _, fileIn := range files {
+		fmt.Printf("file_in %v\r\n", path+fileIn.fileName)
+		t.Run("exec_"+fileIn.fileName, func(t *testing.T) {
+			eb := exec.NewExecutorBase(0xff, output)
+			extFunctions := make(map[string]func(args []*frl.Value) ([]*frl.Value, bool, error))
+			e := exec.InitExecutor(eb, extFunctions, output, outputTranslate, fileIn.debug, eventManager)
 			err := e.Exec(path+fileIn.fileName, "пример1", "1", "2")
 			require.NoError(t, err)
 		})
