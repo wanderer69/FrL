@@ -184,31 +184,59 @@ func ToType(value interface{}) (ValueType, bool) {
 				vv := string(ss.String())[1:]
 				sl := strings.Split(vv, ".")
 				if len(sl) == 2 {
-					if sl[1] == "Frame" {
+					switch sl[1] {
+					case "Frame":
 						typev = VtFrame
 						res = true
-					} else if sl[1] == "Iterator" {
+					case "Iterator":
 						typev = VtIterator
 						res = true
-					} else if sl[1] == "Slot" {
+					case "Slot":
 						typev = VtSlot
 						res = true
-					} else if sl[1] == "Stream" {
+					case "Stream":
 						typev = VtStream
 						res = true
-					} else if sl[1] == "Function" {
+					case "Function":
 						typev = VtFunction
 						res = true
-					} else if sl[1] == "Map" {
+					case "Map":
 						typev = VtMap
 						res = true
-					} else if sl[1] == "DataBase" {
+					case "DataBase":
 						typev = VtDataBase
 						res = true
-					} else if sl[1] == "Value" {
+					case "Value":
 						typev = VtIterator
 						res = true
 					}
+					/*
+						if sl[1] == "Frame" {
+							typev = VtFrame
+							res = true
+						} else if sl[1] == "Iterator" {
+							typev = VtIterator
+							res = true
+						} else if sl[1] == "Slot" {
+							typev = VtSlot
+							res = true
+						} else if sl[1] == "Stream" {
+							typev = VtStream
+							res = true
+						} else if sl[1] == "Function" {
+							typev = VtFunction
+							res = true
+						} else if sl[1] == "Map" {
+							typev = VtMap
+							res = true
+						} else if sl[1] == "DataBase" {
+							typev = VtDataBase
+							res = true
+						} else if sl[1] == "Value" {
+							typev = VtIterator
+							res = true
+						}
+					*/
 				}
 			} else if string(aa) == "slice" {
 				ss := reflect.TypeOf(value)
@@ -225,10 +253,11 @@ func ToType(value interface{}) (ValueType, bool) {
 				vv := string(ss.String())[1:]
 				sl := strings.Split(vv, ".")
 				if len(sl) == 2 {
-					if sl[1] == "Iterator" {
+					switch sl[1] {
+					case "Iterator":
 						typev = VtIterator
 						res = true
-					} else if sl[1] == "Slot" {
+					case "Slot":
 						typev = VtSlot
 						res = true
 					}

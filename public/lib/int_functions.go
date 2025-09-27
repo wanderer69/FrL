@@ -1,6 +1,11 @@
 package frl
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+
+	"github.com/google/uuid"
+)
 
 //	"github.com/wanderer69/FrL/src/lib/common"
 
@@ -1068,6 +1073,126 @@ func StoreInDataBase_internal(ie *InterpreterEnv, state int, if_ *InternalFuncti
 					break
 				}
 			}
+			return nil, nil, false, nil
+		}
+	}
+	return nil, nil, false, nil
+}
+
+func SetChannelEvent_internal(ie *InterpreterEnv, state int, if_ *InternalFunction, args []*Value) (*InternalFunction, []*Value, bool, error) {
+	// принцип аналогичен команде однако есть отличие так как вычисление идет в две итерации
+	// 0. регистрация
+	// 1. оценка и связывание аргументов
+	// 2. собственно вычисление
+	switch state {
+	case 0:
+		if_n := &InternalFunction{Name: "установить_канал"} // имя функции
+		return if_n, nil, false, nil
+	case 1:
+		if_n := &InternalFunction{NumArgs: 2} // принимает на вход список
+		return if_n, nil, false, nil
+	case 2:
+		if if_ != nil {
+			if args[0].GetType() != VtString { // имя канала
+				return nil, nil, false, fmt.Errorf("must be string, has %v", args[0].GetType())
+			}
+			channelName := args[0].String()
+			if args[1].GetType() != VtString { // имя функции
+				return nil, nil, false, fmt.Errorf("must be frame, has %v", args[1].GetType())
+			}
+			event := &Event{
+				Type:    "channel",
+				Channel: channelName,
+				Fn:      args[1].String(),
+				ID:      uuid.NewString(),
+			}
+			ie.Events = append(ie.Events, event)
+			ie.EventsByID[event.ID] = event
+			ie.Channels[channelName] = &Channel{
+				Name: channelName,
+			}
+
+			return nil, nil, false, nil
+		}
+	}
+	return nil, nil, false, nil
+}
+
+func SetTimerEvent_internal(ie *InterpreterEnv, state int, if_ *InternalFunction, args []*Value) (*InternalFunction, []*Value, bool, error) {
+	// принцип аналогичен команде однако есть отличие так как вычисление идет в две итерации
+	// 0. регистрация
+	// 1. оценка и связывание аргументов
+	// 2. собственно вычисление
+	switch state {
+	case 0:
+		if_n := &InternalFunction{Name: "установить_таймер"} // имя функции
+		return if_n, nil, false, nil
+	case 1:
+		if_n := &InternalFunction{NumArgs: 3} // принимает на вход список
+		return if_n, nil, false, nil
+	case 2:
+		if if_ != nil {
+			if args[0].GetType() != VtString { // имя канала
+				return nil, nil, false, fmt.Errorf("must be string, has %v", args[0].GetType())
+			}
+			channelName := args[0].String()
+			if args[1].GetType() != VtString { // имя функции
+				return nil, nil, false, fmt.Errorf("must be frame, has %v", args[1].GetType())
+			}
+			if args[2].GetType() != VtString { // время
+				return nil, nil, false, fmt.Errorf("must be string, has %v", args[0].GetType())
+			}
+			duration, err := time.ParseDuration(args[2].String())
+			if err != nil {
+				return nil, nil, false, fmt.Errorf("bad format duration %v", args[0].String())
+
+			}
+			event := &Event{
+				Type:     "duration",
+				Duration: duration,
+				Channel:  channelName,
+				Fn:       args[1].String(),
+				ID:       uuid.NewString(),
+			}
+			ie.Events = append(ie.Events, event)
+			ie.EventsByID[event.ID] = event
+
+			ie.Channels[channelName] = &Channel{
+				Name: channelName,
+			}
+
+			return nil, nil, false, nil
+		}
+	}
+	return nil, nil, false, nil
+}
+
+func FireEvent_internal(ie *InterpreterEnv, state int, if_ *InternalFunction, args []*Value) (*InternalFunction, []*Value, bool, error) {
+	// принцип аналогичен команде однако есть отличие так как вычисление идет в две итерации
+	// 0. регистрация
+	// 1. оценка и связывание аргументов
+	// 2. собственно вычисление
+	switch state {
+	case 0:
+		if_n := &InternalFunction{Name: "запустить_событие"} // имя
+		return if_n, nil, false, nil
+	case 1:
+		if_n := &InternalFunction{NumArgs: 2} // принимает на вход список
+		return if_n, nil, false, nil
+	case 2:
+		if if_ != nil {
+			if args[0].GetType() != VtString { // имя канала
+				return nil, nil, false, fmt.Errorf("must be string, has %v", args[0].GetType())
+			}
+			channelName := args[0].String()
+			if args[1].GetType() == VtNil { // значение
+				return nil, nil, false, fmt.Errorf("must be value, has %v", args[1].GetType())
+			}
+			c, ok := ie.Channels[channelName]
+			if !ok {
+				return nil, nil, false, fmt.Errorf("bad channel name %v", args[0].GetType())
+			}
+			c.Value <- args[1]
 			return nil, nil, false, nil
 		}
 	}

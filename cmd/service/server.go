@@ -96,10 +96,11 @@ func main() {
 		fmt.Printf(frm, args...)
 	}
 	outputBaseTranslate := print.NewOutput(basePrintFunc)
+	eventManager := frl.NewEventManager()
 
-	eb := exec.InitExecutorBase(0, outputBaseTranslate)
+	eb := exec.NewExecutorBase(0, outputBaseTranslate)
 	extFunctions := make(map[string]func(args []*frl.Value) ([]*frl.Value, bool, error))
-	e := exec.InitExecutor(eb, extFunctions, output, outputTranslate, 0)
+	e := exec.InitExecutor(eb, extFunctions, output, outputTranslate, 0, eventManager)
 
 	wse.Server(eb, e)
 
