@@ -91,7 +91,7 @@ func (value *Value) GetType() ValueType {
 	return value.typev
 }
 
-func NewValue(vtype int, value interface{}) *Value {
+func NewValue(vtype ValueType, value interface{}) *Value {
 	return &Value{ValueType(vtype), value}
 }
 

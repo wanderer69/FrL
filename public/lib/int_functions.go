@@ -410,6 +410,40 @@ func GetPropertySlot_internal(ie *InterpreterEnv, state int, if_ *InternalFuncti
 	return nil, nil, false, nil
 }
 
+func GetSlot_internal(ie *InterpreterEnv, state int, if_ *InternalFunction, args []*Value) (*InternalFunction, []*Value, bool, error) {
+	// принцип аналогичен команде однако есть отличие так как вычисление идет в две итерации
+	// 0. регистрация
+	// 1. оценка и связывание аргументов
+	// 2. собственно вычисление
+	switch state {
+	case 0:
+		if_n := &InternalFunction{Name: "получить_слот"} // имя
+		return if_n, nil, false, nil
+	case 1:
+		if_n := &InternalFunction{NumArgs: 2} // принимает на вход
+		return if_n, nil, false, nil
+	case 2:
+		if if_ != nil {
+			if args[0].GetType() != VtFrame { // фрейм
+				return nil, nil, false, fmt.Errorf("must be frame, has %v", args[0].GetType())
+			}
+			if args[1].GetType() != VtString { // имя слота
+				return nil, nil, false, fmt.Errorf("must be string, has %v", args[1].GetType())
+			}
+			f := args[0].Frame()
+			slotName := args[1].String()
+			slot, err := f.GetSlot(slotName)
+			if err != nil {
+				return nil, nil, false, err
+			}
+
+			result := []*Value{NewValue(VtSlot, slot)}
+			return if_, result, true, nil
+		}
+	}
+	return nil, nil, false, nil
+}
+
 func ItemSlice_internal(ie *InterpreterEnv, state int, if_ *InternalFunction, args []*Value) (*InternalFunction, []*Value, bool, error) {
 	// принцип аналогичен команде однако есть отличие так как вычисление идет в две итерации
 	// 0. регистрация
@@ -1193,6 +1227,27 @@ func FireEvent_internal(ie *InterpreterEnv, state int, if_ *InternalFunction, ar
 				return nil, nil, false, fmt.Errorf("bad channel name %v", args[0].GetType())
 			}
 			c.Value <- args[1]
+			return nil, nil, false, nil
+		}
+	}
+	return nil, nil, false, nil
+}
+
+func DoneEvent_internal(ie *InterpreterEnv, state int, if_ *InternalFunction, args []*Value) (*InternalFunction, []*Value, bool, error) {
+	// принцип аналогичен команде однако есть отличие так как вычисление идет в две итерации
+	// 0. регистрация
+	// 1. оценка и связывание аргументов
+	// 2. собственно вычисление
+	switch state {
+	case 0:
+		if_n := &InternalFunction{Name: "прекратить_обработку_событий"} // имя
+		return if_n, nil, false, nil
+	case 1:
+		if_n := &InternalFunction{NumArgs: 0} // принимает на вход список
+		return if_n, nil, false, nil
+	case 2:
+		if if_ != nil {
+			ie.done <- struct{}{}
 			return nil, nil, false, nil
 		}
 	}

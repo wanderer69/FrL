@@ -949,7 +949,7 @@ func TestTranslatorExecExtFunc(t *testing.T) {
 			arg := args[i]
 			fmt.Printf("-> %v %v\r\n", arg.GetType(), arg.GetValue())
 		}
-		result := frl.NewValue(int(frl.VtString), "lao jao wong")
+		result := frl.NewValue(frl.VtString, "lao jao wong")
 		return []*frl.Value{result}, true, nil
 	}
 	extFunctions["ExternalFunction1"] = func(args []*frl.Value) ([]*frl.Value, bool, error) {
@@ -957,7 +957,7 @@ func TestTranslatorExecExtFunc(t *testing.T) {
 			arg := args[i]
 			fmt.Printf("-> %v %v\r\n", arg.GetType(), arg.GetValue())
 		}
-		result := frl.NewValue(int(frl.VtString), "в лесу родилась елочка")
+		result := frl.NewValue(frl.VtString, "в лесу родилась елочка")
 		return []*frl.Value{result}, true, nil
 	}
 
@@ -1096,7 +1096,7 @@ func TestTranslatorEvent(t *testing.T) {
 			eb := exec.NewExecutorBase(0xff, output)
 			extFunctions := make(map[string]func(args []*frl.Value) ([]*frl.Value, bool, error))
 			e := exec.InitExecutor(eb, extFunctions, output, outputTranslate, fileIn.debug, eventManager)
-			err := e.Exec(path+fileIn.fileName, "пример1", "1", "2")
+			err := e.Exec(path+fileIn.fileName, "основная", "1", "2")
 			require.NoError(t, err)
 		})
 	}
