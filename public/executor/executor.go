@@ -81,6 +81,8 @@ func InitExecutor(
 	ie.BindFunction(frl.SetTimerEvent_internal)
 	ie.BindFunction(frl.SetChannelEvent_internal)
 	ie.BindFunction(frl.FireEvent_internal)
+	ie.BindFunction(frl.GetSlot_internal)
+	ie.BindFunction(frl.DoneEvent_internal)
 	ie.ExternalFunctions = extFunctions
 
 	ie.SetFrameEnvironment(eb.fe)
@@ -498,6 +500,8 @@ func (e *Executor) setEvents(
 	et := make(chan *eventTimer, 3)
 	ec := make(chan *eventChannel, 3)
 
+	done := make(chan struct{}, 2)
+	isDone := false
 	for i := range events {
 		switch events[i].Type {
 		case "duration":
@@ -506,12 +510,14 @@ func (e *Executor) setEvents(
 				for {
 					select {
 					case tm := <-tt.C:
-						tmValue := frl.NewValue(int(frl.VtString), tm.Format(time.RFC3339))
+						tmValue := frl.NewValue(frl.VtString, tm.Format(time.RFC3339))
 						et <- &eventTimer{
 							id: id,
 							tm: tmValue,
 						}
 					case <-e.ie.GetDone():
+						done <- struct{}{}
+						isDone = true
 						return
 					}
 				}
@@ -533,6 +539,8 @@ func (e *Executor) setEvents(
 							data: data,
 						}
 					case <-e.ie.GetDone():
+						done <- struct{}{}
+						isDone = true
 						return
 					}
 				}
@@ -561,6 +569,9 @@ func (e *Executor) setEvents(
 					if flag {
 						break
 					}
+					if isDone {
+						return nil
+					}
 				}
 			}
 		case ee := <-ec:
@@ -582,11 +593,18 @@ func (e *Executor) setEvents(
 					if flag {
 						break
 					}
+					if isDone {
+						return nil
+					}
 				}
 			}
-		case <-e.ie.GetDone():
+			//		case <-done:
+			//			return nil
+		}
+		if isDone {
 			return nil
 		}
+
 	}
 }
 

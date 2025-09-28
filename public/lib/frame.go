@@ -150,6 +150,15 @@ func (f *Frame) GetValue(name string) ([]*Value, error) {
 	}
 }
 
+func (f *Frame) GetSlot(name string) (*Slot, error) {
+	slot, ok := f.ht.Lookup(name)
+	if ok {
+		return slot, nil
+	} else {
+		return nil, fmt.Errorf("undefined slot name %v", name)
+	}
+}
+
 func (f *Frame) ToString() string {
 	res := ""
 	ff := f.ht.Iterate()
