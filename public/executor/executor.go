@@ -83,6 +83,7 @@ func InitExecutor(
 	ie.BindFunction(frl.FireEvent_internal)
 	ie.BindFunction(frl.GetSlot_internal)
 	ie.BindFunction(frl.DoneEvent_internal)
+	ie.BindFunction(frl.ValueType_internal)
 	ie.ExternalFunctions = extFunctions
 
 	ie.SetFrameEnvironment(eb.fe)
@@ -604,7 +605,6 @@ func (e *Executor) setEvents(
 		if isDone {
 			return nil
 		}
-
 	}
 }
 

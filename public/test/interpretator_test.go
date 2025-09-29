@@ -1103,6 +1103,40 @@ func TestTranslatorEvent(t *testing.T) {
 	os.Remove("./test_file_new.txt")
 }
 
+func TestFrameIterator(t *testing.T) {
+	debug.NewDebug()
+	require.NoError(t, os.RemoveAll("./test_db"))
+
+	path := "../../data/scripts/lang/"
+
+	files := []struct {
+		fileName string
+		debug    int
+	}{
+		{fileName: "test_итератора_фрейма.frm", debug: 0 /*xfe*/},
+	}
+	printFunc := func(frm string, args ...any) {
+		fmt.Printf(frm, args...)
+	}
+	output := print.NewOutput(printFunc)
+	translatePrintFunc := func(frm string, args ...any) {
+		fmt.Printf(frm, args...)
+	}
+	outputTranslate := print.NewOutput(translatePrintFunc)
+	eventManager := frl.NewEventManager()
+	for _, fileIn := range files {
+		fmt.Printf("file_in %v\r\n", path+fileIn.fileName)
+		t.Run("exec_"+fileIn.fileName, func(t *testing.T) {
+			eb := exec.NewExecutorBase(0xff, output)
+			extFunctions := make(map[string]func(args []*frl.Value) ([]*frl.Value, bool, error))
+			e := exec.InitExecutor(eb, extFunctions, output, outputTranslate, fileIn.debug, eventManager)
+			err := e.Exec(path+fileIn.fileName, "основная", "1", "2")
+			require.NoError(t, err)
+		})
+	}
+	os.Remove("./test_file_new.txt")
+}
+
 func TestStore(t *testing.T) {
 	debug.NewDebug()
 

@@ -1253,3 +1253,25 @@ func DoneEvent_internal(ie *InterpreterEnv, state int, if_ *InternalFunction, ar
 	}
 	return nil, nil, false, nil
 }
+
+func ValueType_internal(ie *InterpreterEnv, state int, if_ *InternalFunction, args []*Value) (*InternalFunction, []*Value, bool, error) {
+	// принцип аналогичен команде однако есть отличие так как вычисление идет в две итерации
+	// 0. регистрация
+	// 1. оценка и связывание аргументов
+	// 2. собственно вычисление
+	switch state {
+	case 0:
+		if_n := &InternalFunction{Name: "тип"} // имя
+		return if_n, nil, false, nil
+	case 1:
+		if_n := &InternalFunction{NumArgs: 1} // принимает на вход список
+		return if_n, nil, false, nil
+	case 2:
+		if if_ != nil {
+			valueType := args[0].GetType().String()
+			result := []*Value{NewValue(VtString, valueType)}
+			return if_, result, true, nil
+		}
+	}
+	return nil, nil, false, nil
+}
